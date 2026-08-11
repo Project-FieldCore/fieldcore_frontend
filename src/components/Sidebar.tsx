@@ -3,11 +3,38 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+const IconDashboard = () => (
+  <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <rect x="3" y="3" width="7" height="7" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const IconClipboard = () => (
+  <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+  </svg>
+);
+
+const IconCalendar = () => (
+  <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
+const IconSearch = () => (
+  <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+  </svg>
+);
+
 const NAV_ITEMS = [
-  { href: '/', label: 'Dashboard', icon: '📊' },
-  { href: '/models', label: 'Modelos de inspeção', icon: '📋' },
-  { href: '/schedule', label: 'Agendar inspeção', icon: '🗓' },
-  { href: '/inspections', label: 'Inspeções', icon: '🔍' },
+  { href: '/', label: 'Dashboard', Icon: IconDashboard },
+  { href: '/models', label: 'Modelos de inspeção', Icon: IconClipboard },
+  { href: '/schedule', label: 'Agendar inspeção', Icon: IconCalendar },
+  { href: '/inspections', label: 'Inspeções', Icon: IconSearch },
 ];
 
 export function Sidebar() {
@@ -15,32 +42,34 @@ export function Sidebar() {
 
   return (
     <aside className="w-64 shrink-0 bg-navy-900 text-white flex flex-col min-h-screen">
-      <div className="flex items-center gap-2.5 px-5 py-6">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-navy-700 to-brandgreen-500" />
-        <div className="font-extrabold text-lg">
+      <div className="flex items-center gap-2.5 px-5 py-6 border-b border-white/10">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-navy-700 to-brandgreen-500 shrink-0" />
+        <div className="font-extrabold text-lg tracking-tight">
           Field<span className="text-brandgreen-500">Core</span>
         </div>
       </div>
-      <nav className="flex-1 px-3 space-y-1">
+      <nav className="flex-1 px-3 py-3 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                active ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                active
+                  ? 'bg-white/10 text-white'
+                  : 'text-slate-400 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <span>{item.icon}</span>
+              <item.Icon />
               {item.label}
             </Link>
           );
         })}
       </nav>
-      <div className="px-5 py-5 border-t border-white/10">
-        <div className="text-xs text-slate-400">Logado como</div>
-        <div className="text-sm font-bold">Marina Costa</div>
+      <div className="px-5 py-4 border-t border-white/10">
+        <div className="text-xs text-slate-500 mb-1">Logado como</div>
+        <div className="text-sm font-semibold text-white">Marina Costa</div>
         <div className="text-xs text-slate-400">Supervisora</div>
       </div>
     </aside>

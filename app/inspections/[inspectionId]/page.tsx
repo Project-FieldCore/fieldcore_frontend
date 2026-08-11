@@ -88,24 +88,34 @@ export default function InspectionReviewPage() {
             {section.items.map((item) => {
               const answer = inspection.answers[item.id];
               const nc = inspection.nonConformities[item.id];
+              const isConforme = answer?.conformity === 'CONFORME';
+              const isNaoConforme = answer?.conformity === 'NAO_CONFORME';
+              const isNaoAplicavel = answer?.conformity === 'NAO_APLICAVEL';
               const label =
-                answer?.conformity === 'CONFORME' ? '✓ Conforme'
-                : answer?.conformity === 'NAO_CONFORME' ? '✕ Não conforme'
-                : answer?.conformity === 'NAO_APLICAVEL' ? '— Não aplicável'
+                isConforme ? 'Conforme'
+                : isNaoConforme ? 'Não conforme'
+                : isNaoAplicavel ? 'Não aplicável'
                 : answer?.value || 'Sem resposta';
-              const tone =
-                answer?.conformity === 'CONFORME' ? 'text-emerald-700'
-                : answer?.conformity === 'NAO_CONFORME' ? 'text-red-600'
-                : 'text-slate-700';
+              const dotColor =
+                isConforme ? 'bg-emerald-500'
+                : isNaoConforme ? 'bg-red-500'
+                : 'bg-slate-300';
+              const labelColor =
+                isConforme ? 'text-emerald-700'
+                : isNaoConforme ? 'text-red-600'
+                : 'text-slate-500';
               return (
                 <div key={item.id} className="border border-slate-100 rounded-xl p-3.5 mb-2">
                   <div className="text-sm font-semibold text-navy-900">{item.title}</div>
-                  <div className={`text-sm font-bold mt-1 ${tone}`}>{label}</div>
-                  {answer?.observacao && <div className="text-xs text-slate-500 mt-1">{answer.observacao}</div>}
+                  <div className={`flex items-center gap-1.5 mt-1.5 text-sm font-semibold ${labelColor}`}>
+                    {answer?.conformity && <span className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />}
+                    {label}
+                  </div>
+                  {answer?.observacao && <div className="text-xs text-slate-500 mt-1.5">{answer.observacao}</div>}
                   {answer?.evidenceCount ? <div className="text-xs text-slate-400 mt-1">{answer.evidenceCount} evidência(s) anexada(s)</div> : null}
                   {nc && (
-                    <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2.5">
-                      <div className="text-xs font-bold text-red-700">⚠ Não conformidade — {nc.criticidade}</div>
+                    <div className="mt-2.5 bg-red-50 border border-red-200 rounded-lg p-2.5">
+                      <div className="text-xs font-semibold text-red-700 uppercase tracking-wide">Não conformidade · {nc.criticidade}</div>
                       <div className="text-xs text-red-600 mt-1">{nc.descricao}</div>
                     </div>
                   )}
