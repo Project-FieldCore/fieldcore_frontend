@@ -39,17 +39,17 @@ export default function InspectionsListPage() {
   }, [inspections, filter, techFilter]);
 
   return (
-    <div>
+    <div className="w-full min-w-0">
       <h1 className="text-2xl font-extrabold text-navy-900 mb-1">Inspeções</h1>
       <p className="text-sm text-slate-500 mb-6">Acompanhe o andamento e abra a revisão das inspeções enviadas (UC-15, UC-16)</p>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="flex gap-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+        <div className="flex gap-1.5 flex-wrap">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border whitespace-nowrap ${
                 filter === f.key ? 'bg-navy-900 border-navy-900 text-white' : 'bg-white border-slate-300 text-slate-500'
               }`}
             >
@@ -57,14 +57,27 @@ export default function InspectionsListPage() {
             </button>
           ))}
         </div>
-        <select value={techFilter} onChange={(e) => setTechFilter(e.target.value)} className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs ml-auto">
+        <select
+          value={techFilter}
+          onChange={(e) => setTechFilter(e.target.value)}
+          className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs w-full sm:w-auto sm:ml-auto"
+        >
           <option value="TODOS">Todos os técnicos</option>
           {technicians.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
         </select>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
+        {/* Tablet/desktop: tabela ocupa 100% do card, sem largura mínima — nunca gera rolagem lateral */}
+        <table className="hidden md:table w-full text-sm table-fixed">
+          <colgroup>
+            <col className="w-[12%]" />
+            <col className="w-[24%]" />
+            <col className="w-[20%]" />
+            <col className="w-[14%]" />
+            <col className="w-[16%]" />
+            <col className="w-[14%]" />
+          </colgroup>
           <thead>
             <tr className="text-left text-slate-500 text-xs uppercase border-b border-slate-100">
               <th className="px-5 py-3">ID</th>
@@ -73,30 +86,54 @@ export default function InspectionsListPage() {
               <th className="px-5 py-3">Prioridade</th>
               <th className="px-5 py-3">Status</th>
               <th className="px-5 py-3">Previsão</th>
-              <th className="px-5 py-3" />
             </tr>
           </thead>
           <tbody>
             {filtered.map((i) => (
               <tr key={i.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
-                <td className="px-5 py-3 font-mono text-xs text-slate-400">{i.id}</td>
-                <td className="px-5 py-3 font-semibold text-navy-900">{clientName(i.clienteId)}</td>
-                <td className="px-5 py-3 text-slate-600">{techName(i.tecnicoId)}</td>
+                <td className="px-5 py-3 font-mono text-xs text-slate-400 truncate">{i.id}</td>
+                <td className="px-5 py-3 font-semibold text-navy-900 truncate">
+                  <Link href={`/inspections/${i.id}`}>{clientName(i.clienteId)}</Link>
+                </td>
+                <td className="px-5 py-3 text-slate-600 truncate">{techName(i.tecnicoId)}</td>
                 <td className="px-5 py-3"><PriorityTag priority={i.prioridade} /></td>
                 <td className="px-5 py-3"><InspectionStatusBadge status={i.status} /></td>
                 <td className="px-5 py-3 text-slate-500 font-mono text-xs">{new Date(i.dataPrevista).toLocaleDateString('pt-BR')}</td>
-                <td className="px-5 py-3 text-right">
-                  <Link href={`/inspections/${i.id}`} className="text-xs font-bold text-navy-700">
-                    {i.status === 'ENVIADA' || i.status === 'EM_REVISAO' ? 'Revisar →' : 'Ver →'}
-                  </Link>
-                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-5 py-10 text-center text-slate-400 text-sm">Nenhuma inspeção encontrada com esses filtros.</td></tr>
+              <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">Nenhuma inspeção encontrada com esses filtros.</td></tr>
             )}
           </tbody>
         </table>
+
+        {/* Mobile: lista de cards com as mesmas informações, empilhadas e sem cortar conteúdo */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {filtered.map((i) => (
+            <Link key={i.id} href={`/inspections/${i.id}`} className="block p-4 hover:bg-slate-50">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="min-w-0">
+                  <div className="font-semibold text-navy-900 truncate">{clientName(i.clienteId)}</div>
+                  <div className="text-xs font-mono text-slate-400 truncate">{i.id}</div>
+                </div>
+                <InspectionStatusBadge status={i.status} />
+              </div>
+              <div className="flex items-center justify-between gap-3 text-sm text-slate-600 mb-2">
+                <span className="truncate min-w-0">{techName(i.tecnicoId)}</span>
+                <PriorityTag priority={i.prioridade} />
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-mono text-slate-500">{new Date(i.dataPrevista).toLocaleDateString('pt-BR')}</span>
+                <span className="text-xs font-bold text-navy-700 whitespace-nowrap">
+                  {i.status === 'ENVIADA' || i.status === 'EM_REVISAO' ? 'Revisar →' : 'Ver →'}
+                </span>
+              </div>
+            </Link>
+          ))}
+          {filtered.length === 0 && (
+            <div className="px-5 py-10 text-center text-slate-400 text-sm">Nenhuma inspeção encontrada com esses filtros.</div>
+          )}
+        </div>
       </div>
     </div>
   );
