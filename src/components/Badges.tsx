@@ -42,10 +42,23 @@ export function PriorityTag({ priority }: { priority: Priority }) {
   );
 }
 
-export function StatCard({ label, value, tone }: { label: string; value: number | string; tone?: string }) {
+export function StatCard({
+  label,
+  value,
+  tone,
+  icon,
+}: {
+  label: string;
+  value: number | string;
+  tone?: string;
+  icon?: React.ReactNode;
+}) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5">
-      <div className={`text-3xl font-extrabold ${tone ?? 'text-navy-900'}`}>{value}</div>
+      <div className="flex items-start justify-between gap-2">
+        <div className={`text-3xl font-extrabold ${tone ?? 'text-navy-900'}`}>{value}</div>
+        {icon && <div className={`shrink-0 ${tone ?? 'text-navy-900'} opacity-70`}>{icon}</div>}
+      </div>
       <div className="text-sm text-slate-500 font-semibold mt-1">{label}</div>
     </div>
   );
