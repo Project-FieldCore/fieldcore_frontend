@@ -39,139 +39,216 @@ export default function ModelBuilderPage() {
   const publishModel = useAppStore((s) => s.publishModel);
 
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
   if (!model) return <div className="text-slate-500">Modelo não encontrado.</div>;
-  const locked = false; // RN-019: aqui poderíamos bloquear edição estrutural de versões já publicadas.
+
+  const totalItems = model.sections.reduce((sum, s) => sum + s.items.length, 0);
+  const requiredItems = model.sections.reduce((sum, s) => sum + s.items.filter((it) => it.required).length, 0);
+  const criticalItems = model.sections.reduce((sum, s) => sum + s.items.filter((it) => it.needsEvidenceOnNok).length, 0);
+
+  // Espelha as validações de publishModel (RN-015) para orientar o usuário antes de tentar publicar.
+  const titleOk = model.title.trim().length > 0;
+  const hasSection = model.sections.length > 0;
+  const hasItem = model.sections.some((s) => s.items.length > 0);
+  const canPublish = titleOk && hasSection && hasItem;
 
   function handlePublish() {
-    const result = publishModel(model.id);
+    const result = publishModel(model!.id);
     if (!result.ok) {
       setPublishError(result.error);
+      setPublishSuccess(null);
       return;
     }
     setPublishError(null);
+    setPublishSuccess(model!.status === 'PUBLICADO' ? 'Nova versão publicada com sucesso.' : 'Modelo publicado com sucesso.');
   }
 
   return (
-    <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <button onClick={() => router.push('/models')} className="text-sm font-semibold text-slate-500">← Voltar aos modelos</button>
+    <div className="max-w-6xl">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <button onClick={() => router.push('/models')} className="text-sm font-semibold text-slate-500 hover:text-navy-700">
+          ← Voltar aos modelos
+        </button>
         <ModelStatusBadge status={model.status} />
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-6">
-        <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Título</label>
-        <input
-          value={model.title}
-          onChange={(e) => updateModelMeta(model.id, { title: e.target.value })}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-lg font-bold text-navy-900 mb-4"
-        />
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Categoria</label>
-            <input
-              value={model.category}
-              onChange={(e) => updateModelMeta(model.id, { category: e.target.value })}
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Versão atual</label>
-            <div className="border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm font-mono text-slate-500">v{model.version}</div>
-          </div>
-        </div>
-        <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Descrição</label>
-        <textarea
-          value={model.description}
-          onChange={(e) => updateModelMeta(model.id, { description: e.target.value })}
-          rows={2}
-          className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"
-        />
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+        <div className="min-w-0">
+          {model.status === 'PUBLICADO' && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold rounded-xl px-4 py-3 mb-4">
+              Este modelo já está publicado (v{model.version}). Alterações feitas aqui só valem para os técnicos ao publicar uma nova versão.
+            </div>
+          )}
 
-      {model.sections.map((section) => (
-        <div key={section.id} className="bg-white border border-slate-200 rounded-2xl p-5 mb-4">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-4">
+            <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Título</label>
             <input
-              value={section.title}
-              onChange={(e) => updateSectionTitle(model.id, section.id, e.target.value)}
-              className="flex-1 border-b border-slate-200 focus:border-navy-700 outline-none font-bold text-navy-900 py-1"
+              value={model.title}
+              onChange={(e) => updateModelMeta(model.id, { title: e.target.value })}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-lg font-bold text-navy-900 mb-4"
             />
-            <button onClick={() => removeSection(model.id, section.id)} className="text-xs font-semibold text-red-600">
-              Remover seção
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {section.items.map((item) => (
-              <div key={item.id} className="border border-slate-200 rounded-xl p-3.5 bg-slate-50">
-                <div className="flex items-center gap-2 mb-2.5">
-                  <input
-                    value={item.title}
-                    onChange={(e) => updateItem(model.id, section.id, item.id, { title: e.target.value })}
-                    className="flex-1 border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white"
-                  />
-                  <button onClick={() => removeItem(model.id, section.id, item.id)} className="text-xs font-semibold text-red-600 px-2">
-                    Remover
-                  </button>
-                </div>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <select
-                    value={item.type}
-                    onChange={(e) => updateItem(model.id, section.id, item.id, { type: e.target.value as ItemType })}
-                    className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white"
-                  >
-                    {ITEM_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={item.required}
-                      onChange={(e) => updateItem(model.id, section.id, item.id, { required: e.target.checked })}
-                    />
-                    Obrigatório
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={item.needsEvidenceOnNok}
-                      onChange={(e) => updateItem(model.id, section.id, item.id, { needsEvidenceOnNok: e.target.checked })}
-                    />
-                    Exige evidência se não conforme (RN-039)
-                  </label>
-                </div>
+            <div className="grid sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Categoria</label>
+                <input
+                  value={model.category}
+                  onChange={(e) => updateModelMeta(model.id, { category: e.target.value })}
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"
+                />
               </div>
-            ))}
-            <button onClick={() => addItem(model.id, section.id)} className="text-sm font-semibold text-navy-700">
-              + Adicionar item
+              <div>
+                <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Versão atual</label>
+                <div className="border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm font-mono text-slate-500">v{model.version}</div>
+              </div>
+            </div>
+            <label className="text-xs font-bold text-navy-700 uppercase block mb-1">Descrição</label>
+            <textarea
+              value={model.description}
+              onChange={(e) => updateModelMeta(model.id, { description: e.target.value })}
+              rows={2}
+              className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm"
+            />
+          </div>
+
+          {model.sections.length === 0 && (
+            <div className="bg-white border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center mb-4">
+              <p className="text-sm font-semibold text-slate-500 mb-1">Nenhuma seção ainda</p>
+              <p className="text-xs text-slate-400">Adicione a primeira seção abaixo para começar a montar o checklist (RN-015).</p>
+            </div>
+          )}
+
+          {model.sections.map((section, sIdx) => (
+            <div key={section.id} className="bg-white border border-slate-200 rounded-2xl p-5 mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="w-6 h-6 rounded-full bg-navy-900 text-white text-xs font-bold flex items-center justify-center shrink-0">
+                  {sIdx + 1}
+                </span>
+                <input
+                  value={section.title}
+                  onChange={(e) => updateSectionTitle(model.id, section.id, e.target.value)}
+                  className="flex-1 border-b border-slate-200 focus:border-navy-700 outline-none font-bold text-navy-900 py-1 min-w-0"
+                />
+                <span className="text-xs font-semibold text-slate-400 shrink-0 whitespace-nowrap">
+                  {section.items.length} item{section.items.length === 1 ? '' : 'ns'}
+                </span>
+                <button onClick={() => removeSection(model.id, section.id)} className="text-xs font-semibold text-red-600 shrink-0">
+                  Remover seção
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {section.items.map((item) => (
+                  <div key={item.id} className="border border-slate-200 rounded-xl p-3.5 bg-slate-50">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <input
+                        value={item.title}
+                        onChange={(e) => updateItem(model.id, section.id, item.id, { title: e.target.value })}
+                        className="flex-1 border border-slate-300 rounded-lg px-2.5 py-1.5 text-sm bg-white"
+                      />
+                      <button onClick={() => removeItem(model.id, section.id, item.id)} className="text-xs font-semibold text-red-600 px-2 shrink-0">
+                        Remover
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <select
+                        value={item.type}
+                        onChange={(e) => updateItem(model.id, section.id, item.id, { type: e.target.value as ItemType })}
+                        className="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white"
+                      >
+                        {ITEM_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={item.required}
+                          onChange={(e) => updateItem(model.id, section.id, item.id, { required: e.target.checked })}
+                        />
+                        Obrigatório
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={item.needsEvidenceOnNok}
+                          onChange={(e) => updateItem(model.id, section.id, item.id, { needsEvidenceOnNok: e.target.checked })}
+                        />
+                        Exige evidência se não conforme (RN-039)
+                      </label>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={() => addItem(model.id, section.id)} className="text-sm font-semibold text-navy-700">
+                  + Adicionar item
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <button
+            onClick={() => addSection(model.id)}
+            className="w-full border-2 border-dashed border-slate-300 rounded-2xl py-4 text-sm font-bold text-slate-500 hover:border-navy-700 hover:text-navy-700 transition-colors"
+          >
+            + Adicionar seção
+          </button>
+        </div>
+
+        <div className="lg:sticky lg:top-6 space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <h2 className="text-xs font-bold text-navy-700 uppercase mb-3">Resumo</h2>
+            <dl className="space-y-2.5 text-sm">
+              <SummaryRow label="Seções" value={model.sections.length} />
+              <SummaryRow label="Itens" value={totalItems} />
+              <SummaryRow label="Obrigatórios" value={requiredItems} />
+              <SummaryRow label="Críticos (RN-039)" value={criticalItems} />
+            </dl>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-5">
+            <h2 className="text-xs font-bold text-navy-700 uppercase mb-3">Antes de publicar</h2>
+            <div className="space-y-2">
+              <CheckItem ok={titleOk} label="Título preenchido" />
+              <CheckItem ok={hasSection} label="Ao menos uma seção" />
+              <CheckItem ok={hasItem} label="Ao menos um item" />
+            </div>
+          </div>
+
+          <div className="bg-navy-900 text-white rounded-2xl p-5">
+            <h2 className="text-xs font-bold text-brandgreen-500 uppercase mb-2">Regras de negócio</h2>
+            <ul className="space-y-2 text-xs text-slate-300 leading-relaxed">
+              <li><strong className="text-white">RN-015</strong> — Título e ao menos uma seção com item válido.</li>
+              <li><strong className="text-white">RN-016</strong> — Todo item precisa de um tipo de resposta.</li>
+              <li><strong className="text-white">RN-018</strong> — Modelo em rascunho pode ser alterado livremente.</li>
+              <li><strong className="text-white">RN-039</strong> — Itens críticos exigem evidência quando não conformes.</li>
+            </ul>
+          </div>
+
+          {publishError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-xl px-4 py-3">
+              {publishError}
+            </div>
+          )}
+          {publishSuccess && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-semibold rounded-xl px-4 py-3">
+              {publishSuccess}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            <button onClick={() => setShowPreview(true)} className="w-full bg-white border border-slate-300 rounded-xl py-3 font-bold text-navy-800">
+              Ver prévia do checklist
+            </button>
+            <button
+              onClick={handlePublish}
+              disabled={!canPublish}
+              className="w-full bg-brandgreen-600 text-white rounded-xl py-3 font-bold transition-colors disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+            >
+              {model.status === 'PUBLICADO' ? 'Publicar nova versão' : 'Publicar versão'}
             </button>
           </div>
         </div>
-      ))}
-
-      <button
-        onClick={() => addSection(model.id)}
-        className="w-full border-2 border-dashed border-slate-300 rounded-2xl py-4 text-sm font-bold text-slate-500 mb-6"
-      >
-        + Adicionar seção
-      </button>
-
-      {publishError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-xl px-4 py-3 mb-4">
-          {publishError}
-        </div>
-      )}
-
-      <div className="flex gap-3">
-        <button onClick={() => setShowPreview(true)} className="flex-1 bg-white border border-slate-300 rounded-xl py-3 font-bold text-navy-800">
-          Ver prévia do checklist
-        </button>
-        <button onClick={handlePublish} className="flex-1 bg-brandgreen-600 text-white rounded-xl py-3 font-bold">
-          Publicar versão
-        </button>
       </div>
 
       {showPreview && (
@@ -196,6 +273,26 @@ export default function ModelBuilderPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="flex items-center justify-between">
+      <dt className="text-slate-500 font-semibold">{label}</dt>
+      <dd className="text-navy-900 font-bold">{value}</dd>
+    </div>
+  );
+}
+
+function CheckItem({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-sm">
+      <span className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+        {ok ? '✓' : '·'}
+      </span>
+      <span className={ok ? 'text-navy-900 font-semibold' : 'text-slate-400'}>{label}</span>
     </div>
   );
 }
