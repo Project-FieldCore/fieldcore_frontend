@@ -7,9 +7,9 @@ export const MOCK_CLIENTS: Client[] = [
 ];
 
 export const MOCK_LOCATIONS: Location[] = [
-  { id: 'loc-1', clienteId: 'cli-1', nome: 'Planta Industrial · Galpão 2' },
-  { id: 'loc-2', clienteId: 'cli-2', nome: 'Barracão de Máquinas' },
-  { id: 'loc-3', clienteId: 'cli-3', nome: 'Linha de Produção 3' },
+  { id: 'loc-1', clienteId: 'cli-1', nome: 'Planta Industrial · Galpão 2', endereco: 'Av. Independência, 1200 - Sorocaba/SP', lat: -23.4917, lng: -47.4525 },
+  { id: 'loc-2', clienteId: 'cli-2', nome: 'Barracão de Máquinas', endereco: 'Estrada da Bela Vista, km 8 - Itu/SP', lat: -23.2645, lng: -47.2996 },
+  { id: 'loc-3', clienteId: 'cli-3', nome: 'Linha de Produção 3', endereco: 'Rua das Indústrias, 450 - Rio Verde/GO', lat: -17.7943, lng: -50.9264 },
 ];
 
 export const MOCK_EQUIPMENT: Equipment[] = [
@@ -48,6 +48,14 @@ export const MOCK_MODELS: InspectionModel[] = [
         items: [
           { id: 's1', title: 'Extintor de incêndio dentro da validade', type: 'CONFORMITY', required: true, needsEvidenceOnNok: false },
           { id: 's2', title: 'Sinalização de segurança visível e legível', type: 'CONFORMITY', required: false, needsEvidenceOnNok: false },
+          {
+            id: 's3',
+            title: 'Condição geral de conservação do local',
+            type: 'SINGLE_CHOICE',
+            required: true,
+            needsEvidenceOnNok: false,
+            options: ['Boa', 'Regular', 'Ruim'],
+          },
         ],
       },
       {

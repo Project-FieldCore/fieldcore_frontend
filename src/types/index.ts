@@ -33,6 +33,8 @@ export interface ModelItem {
   required: boolean;
   /** RN-039: item crítico — exige evidência quando não conforme. */
   needsEvidenceOnNok: boolean;
+  /** Alternativas disponíveis quando type === 'SINGLE_CHOICE'. */
+  options?: string[];
 }
 
 export interface ModelSection {
@@ -62,6 +64,9 @@ export interface Location {
   id: string;
   clienteId: string;
   nome: string;
+  endereco?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Equipment {
@@ -86,6 +91,8 @@ export interface Answer {
   value?: string;
   observacao?: string;
   evidenceCount: number;
+  /** Fotos de evidência (data URLs) anexadas pelo técnico. */
+  photos?: string[];
 }
 
 export function isAnswerFilled(answer: Answer | undefined): boolean {
@@ -102,6 +109,21 @@ export interface NonConformity {
   descricao: string;
   criticidade: Criticidade;
   evidenceCount: number;
+  /** Fotos de evidência (data URLs) anexadas para a não conformidade. */
+  photos?: string[];
+}
+
+export interface Geolocalizacao {
+  lat: number;
+  lng: number;
+  capturedAt: string;
+}
+
+export interface SyncQueueItem {
+  id: string;
+  inspectionId: string;
+  descricao: string;
+  createdAt: string;
 }
 
 export interface ReviewInfo {
@@ -126,4 +148,7 @@ export interface Inspection {
   answers: Record<string, Answer>;
   nonConformities: Record<string, NonConformity>;
   review?: ReviewInfo;
+  geolocalizacao?: Geolocalizacao;
+  /** Data/hora em que o QR Code do equipamento foi escaneado e confirmado. */
+  qrConfirmadoEm?: string;
 }

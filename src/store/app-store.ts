@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Answer, Criticidade, Inspection, InspectionModel, ModelSection, ModelItem, Priority } from '@/types';
+import type { Answer, Criticidade, Geolocalizacao, Inspection, InspectionModel, ModelSection, ModelItem, Priority, SyncQueueItem } from '@/types';
 import { isAnswerFilled } from '@/types';
 import {
   MOCK_CLIENTS,
@@ -19,6 +19,9 @@ interface AppState {
   technicians: typeof MOCK_TECHNICIANS;
   models: InspectionModel[];
   inspections: Inspection[];
+  syncQueue: SyncQueueItem[];
+  lastSyncAt: string | null;
+  syncing: boolean;
 
   // --- modelos (UC-04, UC-05) ---
   createDraftModel: () => string;
@@ -53,9 +56,14 @@ interface AppState {
   saveNonConformity: (
     inspectionId: string,
     itemId: string,
-    patch: Partial<{ titulo: string; descricao: string; criticidade: Criticidade; evidenceCount: number }>
+    patch: Partial<{ titulo: string; descricao: string; criticidade: Criticidade; evidenceCount: number; photos: string[] }>
   ) => void;
   submitInspection: (inspectionId: string) => { ok: true } | { ok: false; error: string };
+  saveGeolocation: (inspectionId: string, geo: { lat: number; lng: number }) => void;
+  confirmEquipmentQr: (inspectionId: string, qrCode: string) => { ok: true } | { ok: false; error: string };
+
+  // --- sincronização offline ---
+  syncNow: () => Promise<void>;
 }
 
 function newId(prefix: string) {
@@ -69,6 +77,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   technicians: MOCK_TECHNICIANS,
   models: MOCK_MODELS,
   inspections: MOCK_INSPECTIONS,
+  syncQueue: [],
+  lastSyncAt: null,
+  syncing: false,
 
   createDraftModel: () => {
     const id = newId('mod');
@@ -268,6 +279,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const status = i.status === 'ATRIBUIDA' ? 'EM_ANDAMENTO' : i.status;
         return { ...i, status, answers: { ...i.answers, [itemId]: answer } };
       }),
+      syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Resposta do checklist', createdAt: new Date().toISOString() }],
     }));
   },
 
@@ -287,6 +299,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         };
         return { ...i, nonConformities: { ...i.nonConformities, [itemId]: nc } };
       }),
+      syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Não conformidade registrada', createdAt: new Date().toISOString() }],
     }));
   },
 
@@ -316,5 +329,38 @@ export const useAppStore = create<AppState>((set, get) => ({
       inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, status: 'ENVIADA' } : i)),
     }));
     return { ok: true };
+  },
+
+  saveGeolocation: (inspectionId, geo) => {
+    const geolocalizacao: Geolocalizacao = { ...geo, capturedAt: new Date().toISOString() };
+    set((s) => ({
+      inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, geolocalizacao } : i)),
+      syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Localização capturada', createdAt: new Date().toISOString() }],
+    }));
+  },
+
+  // RN-041 (implícito): confirmar o equipamento correto via QR Code antes de responder.
+  confirmEquipmentQr: (inspectionId, qrCode) => {
+    const inspection = get().inspections.find((i) => i.id === inspectionId);
+    if (!inspection) return { ok: false, error: 'Inspeção não encontrada.' };
+    const equipment = get().equipment.find((e) => e.id === inspection.equipamentoId);
+    if (!equipment) return { ok: false, error: 'Esta inspeção não possui um equipamento vinculado.' };
+    if (equipment.qrCode !== qrCode) {
+      return { ok: false, error: `QR Code não corresponde a "${equipment.nome}". Verifique se está no equipamento correto.` };
+    }
+    const qrConfirmadoEm = new Date().toISOString();
+    set((s) => ({
+      inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, qrConfirmadoEm } : i)),
+      syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Equipamento confirmado via QR Code', createdAt: qrConfirmadoEm }],
+    }));
+    return { ok: true };
+  },
+
+  // Sincronização simulada: em campo, a fila fica pendente até haver conexão.
+  syncNow: async () => {
+    if (get().syncing || get().syncQueue.length === 0) return;
+    set({ syncing: true });
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    set({ syncing: false, syncQueue: [], lastSyncAt: new Date().toISOString() });
   },
 }));

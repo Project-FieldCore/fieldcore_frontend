@@ -178,6 +178,24 @@ export default function ModelBuilderPage() {
                         Exige evidência se não conforme (RN-039)
                       </label>
                     </div>
+                    {item.type === 'SINGLE_CHOICE' && (
+                      <div className="mt-2.5">
+                        <label className="text-xs font-semibold text-slate-600 block mb-1">Alternativas (separadas por vírgula)</label>
+                        <input
+                          value={(item.options ?? []).join(', ')}
+                          onChange={(e) =>
+                            updateItem(model.id, section.id, item.id, {
+                              options: e.target.value
+                                .split(',')
+                                .map((o) => o.trim())
+                                .filter(Boolean),
+                            })
+                          }
+                          placeholder="Ex.: Boa, Regular, Ruim"
+                          className="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs bg-white"
+                        />
+                      </div>
+                    )}
                   </div>
                 ))}
                 <button onClick={() => addItem(model.id, section.id)} className="text-sm font-semibold text-navy-700">
