@@ -11,6 +11,7 @@ export type InspectionStatus =
   | 'EM_ANDAMENTO'
   | 'ENVIADA'
   | 'EM_REVISAO'
+  | 'DEVOLVIDA'
   | 'APROVADA'
   | 'REPROVADA'
   | 'CANCELADA';
@@ -133,6 +134,13 @@ export interface ReviewInfo {
   decidedAt?: string;
 }
 
+/** Registro de devolução da inspeção para correção do técnico (feedback do gestor). */
+export interface CorrectionFeedback {
+  supervisorNome: string;
+  comentario: string;
+  createdAt: string;
+}
+
 export interface Inspection {
   id: string;
   clienteId: string;
@@ -151,4 +159,6 @@ export interface Inspection {
   geolocalizacao?: Geolocalizacao;
   /** Data/hora em que o QR Code do equipamento foi escaneado e confirmado. */
   qrConfirmadoEm?: string;
+  /** Histórico de devoluções para correção (mais recente por último). */
+  correcoes?: CorrectionFeedback[];
 }

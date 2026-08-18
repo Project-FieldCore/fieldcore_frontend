@@ -26,11 +26,15 @@ export default function InspectionReviewPage() {
   const startReview = useAppStore((s) => s.startReview);
   const approveInspection = useAppStore((s) => s.approveInspection);
   const rejectInspection = useAppStore((s) => s.rejectInspection);
+  const returnForCorrection = useAppStore((s) => s.returnForCorrection);
 
   const [comentario, setComentario] = useState('');
   const [motivo, setMotivo] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectError, setRejectError] = useState<string | null>(null);
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnFeedback, setReturnFeedback] = useState('');
+  const [returnError, setReturnError] = useState<string | null>(null);
 
   if (!inspection) return <div className="text-slate-500">Inspeção não encontrada.</div>;
 
@@ -52,6 +56,11 @@ export default function InspectionReviewPage() {
   function handleReject() {
     const result = rejectInspection(inspection!.id, 'Marina Costa', motivo);
     if (!result.ok) { setRejectError(result.error); return; }
+    router.push('/inspections');
+  }
+  function handleReturnForCorrection() {
+    const result = returnForCorrection(inspection!.id, 'Marina Costa', returnFeedback);
+    if (!result.ok) { setReturnError(result.error); return; }
     router.push('/inspections');
   }
 
@@ -78,6 +87,22 @@ export default function InspectionReviewPage() {
         <button onClick={handleOpenReview} className="w-full bg-navy-800 text-white rounded-xl py-3 font-bold mb-5">
           Iniciar revisão formal
         </button>
+      )}
+
+      {inspection.correcoes && inspection.correcoes.length > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-5">
+          <h2 className="text-xs font-bold text-orange-700 uppercase mb-3">Histórico de devoluções para correção</h2>
+          <div className="space-y-3">
+            {inspection.correcoes.map((c, idx) => (
+              <div key={idx} className="text-sm">
+                <div className="text-orange-700 font-semibold">{c.comentario}</div>
+                <div className="text-xs text-orange-500 mt-0.5">
+                  {c.supervisorNome} · {new Date(c.createdAt).toLocaleString('pt-BR')}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-5">
@@ -126,10 +151,13 @@ export default function InspectionReviewPage() {
         ))}
       </div>
 
-      {canReview && !showRejectForm && (
+      {canReview && !showRejectForm && !showReturnForm && (
         <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={() => setShowRejectForm(true)} className="flex-1 bg-white border border-red-200 text-red-600 rounded-xl py-3 font-bold">
             Reprovar
+          </button>
+          <button onClick={() => setShowReturnForm(true)} className="flex-1 bg-white border border-orange-200 text-orange-600 rounded-xl py-3 font-bold">
+            Devolver para correção
           </button>
           <button onClick={handleApprove} className="flex-1 bg-brandgreen-600 text-white rounded-xl py-3 font-bold">
             Aprovar
@@ -137,7 +165,7 @@ export default function InspectionReviewPage() {
         </div>
       )}
 
-      {canReview && (
+      {canReview && !showRejectForm && !showReturnForm && (
         <div className="mt-3">
           <textarea
             value={comentario}
@@ -157,6 +185,27 @@ export default function InspectionReviewPage() {
           <div className="flex flex-col sm:flex-row gap-2">
             <button onClick={() => setShowRejectForm(false)} className="flex-1 bg-white border border-slate-300 rounded-xl py-2.5 font-bold text-navy-800">Cancelar</button>
             <button onClick={handleReject} className="flex-1 bg-red-600 text-white rounded-xl py-2.5 font-bold">Confirmar reprovação</button>
+          </div>
+        </div>
+      )}
+
+      {showReturnForm && (
+        <div className="bg-white border border-orange-200 rounded-2xl p-5 mt-3">
+          <label className="text-xs font-bold text-orange-700 uppercase block mb-1">O que o técnico precisa corrigir? (obrigatório)</label>
+          <p className="text-xs text-slate-500 mb-2">
+            A inspeção volta para o técnico responder novamente — diferente da reprovação, que encerra o ciclo.
+          </p>
+          <textarea
+            value={returnFeedback}
+            onChange={(e) => setReturnFeedback(e.target.value)}
+            rows={3}
+            placeholder="Ex.: item 'Estrutura sem trincas' está marcado como conforme, mas a foto mostra corrosão visível."
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-3"
+          />
+          {returnError && <div className="text-xs text-red-600 font-semibold mb-3">{returnError}</div>}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button onClick={() => setShowReturnForm(false)} className="flex-1 bg-white border border-slate-300 rounded-xl py-2.5 font-bold text-navy-800">Cancelar</button>
+            <button onClick={handleReturnForCorrection} className="flex-1 bg-orange-600 text-white rounded-xl py-2.5 font-bold">Confirmar devolução</button>
           </div>
         </div>
       )}

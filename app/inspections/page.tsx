@@ -11,6 +11,7 @@ const FILTERS: { key: 'TODAS' | InspectionStatus; label: string }[] = [
   { key: 'ATRIBUIDA', label: 'Atribuídas' },
   { key: 'EM_ANDAMENTO', label: 'Em andamento' },
   { key: 'ENVIADA', label: 'Aguardando revisão' },
+  { key: 'DEVOLVIDA', label: 'Devolvidas' },
   { key: 'APROVADA', label: 'Aprovadas' },
   { key: 'REPROVADA', label: 'Reprovadas' },
 ];
@@ -30,7 +31,7 @@ export default function InspectionsListPage() {
   const clientName = (id: string) => clients.find((c) => c.id === id)?.nome ?? '—';
   const techName = (id: string) => technicians.find((t) => t.id === id)?.nome ?? '—';
   const detailHref = (i: (typeof inspections)[number]) =>
-    i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO' ? `/inspections/${i.id}/responder` : `/inspections/${i.id}`;
+    i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO' || i.status === 'DEVOLVIDA' ? `/inspections/${i.id}/responder` : `/inspections/${i.id}`;
 
   const filtered = useMemo(() => {
     return inspections.filter((i) => {
@@ -127,7 +128,9 @@ export default function InspectionsListPage() {
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-mono text-slate-500">{new Date(i.dataPrevista).toLocaleDateString('pt-BR')}</span>
                 <span className="text-xs font-bold text-navy-700 whitespace-nowrap">
-                  {i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO'
+                  {i.status === 'DEVOLVIDA'
+                    ? 'Corrigir →'
+                    : i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO'
                     ? 'Responder →'
                     : i.status === 'ENVIADA' || i.status === 'EM_REVISAO'
                     ? 'Revisar →'

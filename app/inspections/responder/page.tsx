@@ -19,7 +19,9 @@ export default function InspectionsToAnswerPage() {
   const locationName = (id: string) => locations.find((l) => l.id === id)?.nome ?? '—';
 
   const pending = inspections.filter(
-    (i) => i.tecnicoId === CURRENT_TECHNICIAN_ID && (i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO')
+    (i) =>
+      i.tecnicoId === CURRENT_TECHNICIAN_ID &&
+      (i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO' || i.status === 'DEVOLVIDA')
   );
 
   return (

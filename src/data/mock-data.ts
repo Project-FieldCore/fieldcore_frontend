@@ -196,4 +196,31 @@ export const MOCK_INSPECTIONS: Inspection[] = [
     answers: {},
     nonConformities: {},
   },
+  {
+    id: 'INS-4477',
+    clienteId: 'cli-2',
+    localId: 'loc-2',
+    equipamentoId: 'eq-2',
+    modeloId: 'mod-1',
+    modeloVersao: 3,
+    tecnicoId: 'tec-1',
+    prioridade: 'MEDIA',
+    dataPrevista: '2026-08-14T11:00:00.000Z',
+    status: 'DEVOLVIDA',
+    answers: {
+      e1: { itemId: 'e1', conformity: 'CONFORME', evidenceCount: 0 },
+      e2: { itemId: 'e2', conformity: 'CONFORME', evidenceCount: 0 },
+      s1: { itemId: 's1', conformity: 'CONFORME', evidenceCount: 0 },
+      s3: { itemId: 's3', value: 'Boa', evidenceCount: 0 },
+      l1: { itemId: 'l1', value: '54', evidenceCount: 0 },
+    },
+    nonConformities: {},
+    correcoes: [
+      {
+        supervisorNome: 'Marina Costa',
+        comentario: 'O item "Extintor de incêndio dentro da validade" está marcado como conforme, mas a foto anexada mostra a etiqueta vencida. Verifique e corrija antes de reenviar.',
+        createdAt: '2026-08-15T09:20:00.000Z',
+      },
+    ],
+  },
 ];

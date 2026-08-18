@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Answer, Criticidade, Geolocalizacao, Inspection, InspectionModel, ModelSection, ModelItem, Priority, SyncQueueItem } from '@/types';
+import type { Answer, CorrectionFeedback, Criticidade, Geolocalizacao, Inspection, InspectionModel, ModelSection, ModelItem, Priority, SyncQueueItem } from '@/types';
 import { isAnswerFilled } from '@/types';
 import {
   MOCK_CLIENTS,
@@ -50,6 +50,7 @@ interface AppState {
   startReview: (inspectionId: string) => void;
   approveInspection: (inspectionId: string, supervisorNome: string, comentario?: string) => void;
   rejectInspection: (inspectionId: string, supervisorNome: string, motivo: string) => { ok: true } | { ok: false; error: string };
+  returnForCorrection: (inspectionId: string, supervisorNome: string, comentario: string) => { ok: true } | { ok: false; error: string };
 
   // --- responder checklist (UC-11, UC-12) ---
   saveAnswer: (inspectionId: string, itemId: string, patch: Partial<Answer>) => void;
@@ -269,6 +270,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     return { ok: true };
   },
 
+  // Devolve a inspeção para o técnico corrigir, com feedback obrigatório do gestor.
+  returnForCorrection: (inspectionId, supervisorNome, comentario) => {
+    if (!comentario.trim()) return { ok: false, error: 'Descreva o que precisa ser corrigido antes de devolver ao técnico.' };
+    const feedback: CorrectionFeedback = { supervisorNome, comentario, createdAt: new Date().toISOString() };
+    set((s) => ({
+      inspections: s.inspections.map((i) =>
+        i.id === inspectionId
+          ? { ...i, status: 'DEVOLVIDA', correcoes: [...(i.correcoes ?? []), feedback] }
+          : i
+      ),
+    }));
+    return { ok: true };
+  },
+
   // RN-039: itens críticos não conformes exigem evidência anexada.
   saveAnswer: (inspectionId, itemId, patch) => {
     set((s) => ({
@@ -276,7 +291,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (i.id !== inspectionId) return i;
         const prev: Answer = i.answers[itemId] ?? { itemId, evidenceCount: 0 };
         const answer: Answer = { ...prev, ...patch };
-        const status = i.status === 'ATRIBUIDA' ? 'EM_ANDAMENTO' : i.status;
+        const status = i.status === 'ATRIBUIDA' || i.status === 'DEVOLVIDA' ? 'EM_ANDAMENTO' : i.status;
         return { ...i, status, answers: { ...i.answers, [itemId]: answer } };
       }),
       syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Resposta do checklist', createdAt: new Date().toISOString() }],

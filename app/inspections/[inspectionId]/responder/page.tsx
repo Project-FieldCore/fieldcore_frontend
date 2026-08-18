@@ -143,7 +143,8 @@ export default function InspectionAnswerPage() {
   const equip = equipment.find((e) => e.id === inspection.equipamentoId);
   const tech = technicians.find((t) => t.id === inspection.tecnicoId);
 
-  const editable = inspection.status === 'ATRIBUIDA' || inspection.status === 'EM_ANDAMENTO';
+  const editable = inspection.status === 'ATRIBUIDA' || inspection.status === 'EM_ANDAMENTO' || inspection.status === 'DEVOLVIDA';
+  const latestCorrection = inspection.correcoes?.[inspection.correcoes.length - 1];
 
   function handleSubmit() {
     const result = submitInspection(inspection!.id);
@@ -355,6 +356,16 @@ export default function InspectionAnswerPage() {
         </div>
         <InspectionStatusBadge status={inspection.status} />
       </div>
+
+      {inspection.status === 'DEVOLVIDA' && latestCorrection && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-5">
+          <h2 className="text-xs font-bold text-orange-700 uppercase mb-2">Devolvida pelo gestor para correção</h2>
+          <p className="text-sm text-orange-800">{latestCorrection.comentario}</p>
+          <p className="text-xs text-orange-500 mt-1.5">
+            {latestCorrection.supervisorNome} · {new Date(latestCorrection.createdAt).toLocaleString('pt-BR')}
+          </p>
+        </div>
+      )}
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         <div><span className="text-slate-400 text-xs uppercase font-bold block mb-1">Técnico</span>{tech?.nome}</div>
