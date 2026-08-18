@@ -88,6 +88,11 @@ export interface Answer {
   evidenceCount: number;
 }
 
+export function isAnswerFilled(answer: Answer | undefined): boolean {
+  if (!answer) return false;
+  return Boolean(answer.conformity || (answer.value && answer.value.trim().length > 0));
+}
+
 export type Criticidade = 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
 
 export interface NonConformity {

@@ -1,7 +1,8 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Inspection, InspectionModel, ModelSection, ModelItem, Priority } from '@/types';
+import type { Answer, Criticidade, Inspection, InspectionModel, ModelSection, ModelItem, Priority } from '@/types';
+import { isAnswerFilled } from '@/types';
 import {
   MOCK_CLIENTS,
   MOCK_EQUIPMENT,
@@ -46,6 +47,15 @@ interface AppState {
   startReview: (inspectionId: string) => void;
   approveInspection: (inspectionId: string, supervisorNome: string, comentario?: string) => void;
   rejectInspection: (inspectionId: string, supervisorNome: string, motivo: string) => { ok: true } | { ok: false; error: string };
+
+  // --- responder checklist (UC-11, UC-12) ---
+  saveAnswer: (inspectionId: string, itemId: string, patch: Partial<Answer>) => void;
+  saveNonConformity: (
+    inspectionId: string,
+    itemId: string,
+    patch: Partial<{ titulo: string; descricao: string; criticidade: Criticidade; evidenceCount: number }>
+  ) => void;
+  submitInspection: (inspectionId: string) => { ok: true } | { ok: false; error: string };
 }
 
 function newId(prefix: string) {
@@ -244,6 +254,66 @@ export const useAppStore = create<AppState>((set, get) => ({
             }
           : i
       ),
+    }));
+    return { ok: true };
+  },
+
+  // RN-039: itens críticos não conformes exigem evidência anexada.
+  saveAnswer: (inspectionId, itemId, patch) => {
+    set((s) => ({
+      inspections: s.inspections.map((i) => {
+        if (i.id !== inspectionId) return i;
+        const prev: Answer = i.answers[itemId] ?? { itemId, evidenceCount: 0 };
+        const answer: Answer = { ...prev, ...patch };
+        const status = i.status === 'ATRIBUIDA' ? 'EM_ANDAMENTO' : i.status;
+        return { ...i, status, answers: { ...i.answers, [itemId]: answer } };
+      }),
+    }));
+  },
+
+  saveNonConformity: (inspectionId, itemId, patch) => {
+    set((s) => ({
+      inspections: s.inspections.map((i) => {
+        if (i.id !== inspectionId) return i;
+        const prev = i.nonConformities[itemId];
+        const nc = {
+          id: prev?.id ?? newId('nc'),
+          itemId,
+          titulo: prev?.titulo ?? '',
+          descricao: prev?.descricao ?? '',
+          criticidade: prev?.criticidade ?? ('MEDIA' as Criticidade),
+          evidenceCount: prev?.evidenceCount ?? 0,
+          ...patch,
+        };
+        return { ...i, nonConformities: { ...i.nonConformities, [itemId]: nc } };
+      }),
+    }));
+  },
+
+  // RN-039/040: todo item obrigatório precisa de resposta; não conformidade crítica exige evidência.
+  submitInspection: (inspectionId) => {
+    const inspection = get().inspections.find((i) => i.id === inspectionId);
+    if (!inspection) return { ok: false, error: 'Inspeção não encontrada.' };
+    const model = get().models.find((m) => m.id === inspection.modeloId);
+    if (!model) return { ok: false, error: 'Modelo da inspeção não encontrado.' };
+
+    for (const section of model.sections) {
+      for (const item of section.items) {
+        const answer = inspection.answers[item.id];
+        if (item.required && !isAnswerFilled(answer)) {
+          return { ok: false, error: `Responda o item obrigatório "${item.title}" antes de enviar.` };
+        }
+        if (item.needsEvidenceOnNok && answer?.conformity === 'NAO_CONFORME') {
+          const nc = inspection.nonConformities[item.id];
+          if (!nc || nc.evidenceCount === 0) {
+            return { ok: false, error: `O item "${item.title}" é crítico e exige evidência para a não conformidade registrada (RN-039).` };
+          }
+        }
+      }
+    }
+
+    set((s) => ({
+      inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, status: 'ENVIADA' } : i)),
     }));
     return { ok: true };
   },

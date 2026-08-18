@@ -56,7 +56,7 @@ export default function InspectionReviewPage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <button onClick={() => router.push('/inspections')} className="text-sm font-semibold text-slate-500 mb-4">← Voltar às inspeções</button>
 
       <div className="flex items-start justify-between gap-3 flex-wrap mb-6">

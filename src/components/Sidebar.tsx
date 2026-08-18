@@ -31,6 +31,13 @@ const IconSearch = () => (
   </svg>
 );
 
+const IconCheckSquare = () => (
+  <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12l2.5 2.5L16 9" />
+  </svg>
+);
+
 const IconMenu = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -47,6 +54,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', Icon: IconDashboard },
   { href: '/models', label: 'Modelos de inspeção', Icon: IconClipboard },
   { href: '/schedule', label: 'Agendar inspeção', Icon: IconCalendar },
+  { href: '/inspections/responder', label: 'Responder checklist', Icon: IconCheckSquare },
   { href: '/inspections', label: 'Inspeções', Icon: IconSearch },
 ];
 
@@ -62,10 +70,13 @@ function Brand() {
 }
 
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const matches = (href: string) => href === pathname || (href !== '/' && pathname.startsWith(`${href}/`));
+  const bestMatch = NAV_ITEMS.filter((item) => matches(item.href)).sort((a, b) => b.href.length - a.href.length)[0];
+
   return (
     <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
       {NAV_ITEMS.map((item) => {
-        const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+        const active = item.href === bestMatch?.href;
         return (
           <Link
             key={item.href}
