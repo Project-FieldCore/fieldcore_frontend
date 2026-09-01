@@ -1,28 +1,48 @@
-import type { Client, Equipment, Inspection, InspectionModel, Location, Technician } from '@/types';
+import type { AccessRequest, AuditEvent, Client, Equipment, Inspection, InspectionModel, Location, User } from '@/types';
 
 export const MOCK_CLIENTS: Client[] = [
-  { id: 'cli-1', nome: 'Grupo Sorocaba Alimentos' },
-  { id: 'cli-2', nome: 'Fazenda Bela Vista' },
-  { id: 'cli-3', nome: 'Metalúrgica Rio Verde' },
+  { id: 'cli-1', nome: 'Grupo Sorocaba Alimentos', cnpj: '12.345.678/0001-90', ativo: true },
+  { id: 'cli-2', nome: 'Fazenda Bela Vista', cnpj: '23.456.789/0001-01', ativo: true },
+  { id: 'cli-3', nome: 'Metalúrgica Rio Verde', cnpj: '34.567.890/0001-12', ativo: true },
 ];
 
 export const MOCK_LOCATIONS: Location[] = [
-  { id: 'loc-1', clienteId: 'cli-1', nome: 'Planta Industrial · Galpão 2' },
-  { id: 'loc-2', clienteId: 'cli-2', nome: 'Barracão de Máquinas' },
-  { id: 'loc-3', clienteId: 'cli-3', nome: 'Linha de Produção 3' },
+  { id: 'loc-1', clienteId: 'cli-1', nome: 'Planta Industrial · Galpão 2', endereco: 'Rod. SP-75, km 12 — Sorocaba/SP', ativo: true },
+  { id: 'loc-2', clienteId: 'cli-2', nome: 'Barracão de Máquinas', endereco: 'Estrada Municipal 4, s/n — Itu/SP', ativo: true },
+  { id: 'loc-3', clienteId: 'cli-3', nome: 'Linha de Produção 3', endereco: 'Av. Industrial, 900 — Rio Verde/GO', ativo: true },
 ];
 
 export const MOCK_EQUIPMENT: Equipment[] = [
-  { id: 'eq-1', localId: 'loc-1', nome: 'Compressor de Ar CA-14', qrCode: 'QR-CA14', ativo: true },
-  { id: 'eq-2', localId: 'loc-2', nome: 'Trator Agrícola TR-08', qrCode: 'QR-TR08', ativo: true },
-  { id: 'eq-3', localId: 'loc-3', nome: 'Painel Elétrico PE-22', qrCode: 'QR-PE22', ativo: true },
+  { id: 'eq-1', localId: 'loc-1', nome: 'Compressor de Ar CA-14', tipo: 'Compressor', qrCode: 'QR-CA14', ativo: true },
+  { id: 'eq-2', localId: 'loc-2', nome: 'Trator Agrícola TR-08', tipo: 'Veículo', qrCode: 'QR-TR08', ativo: true },
+  { id: 'eq-3', localId: 'loc-3', nome: 'Painel Elétrico PE-22', tipo: 'Painel elétrico', qrCode: 'QR-PE22', ativo: true },
 ];
 
-export const MOCK_TECHNICIANS: Technician[] = [
-  { id: 'tec-1', nome: 'Marcos Silva', ativo: true },
-  { id: 'tec-2', nome: 'Juliana Prado', ativo: true },
-  { id: 'tec-3', nome: 'Rafael Nunes', ativo: false },
+/**
+ * Contas do sistema (Seção 5 — Perfis de Usuário e Autorização). No painel
+ * web só ADMIN e SUPERVISOR autenticam (RN-001); TECHNICIAN usa o app
+ * mobile e CLIENT_VIEWER é escopo futuro — ambos aparecem aqui porque o
+ * cadastro de usuários é único e centralizado (evita duplicidade — dor da
+ * Ana em 03 - Problema).
+ */
+export const MOCK_USERS: User[] = [
+  { id: 'usr-admin', nome: 'Ana Ribeiro', email: 'ana.ribeiro@fieldcore.com', role: 'ADMIN', status: 'ATIVO' },
+  { id: 'usr-super', nome: 'Marina Costa', email: 'marina.costa@fieldcore.com', role: 'SUPERVISOR', status: 'ATIVO' },
+  { id: 'tec-1', nome: 'Marcos Silva', email: 'marcos.silva@fieldcore.com', role: 'TECHNICIAN', status: 'ATIVO' },
+  { id: 'tec-2', nome: 'Juliana Prado', email: 'juliana.prado@fieldcore.com', role: 'TECHNICIAN', status: 'ATIVO' },
+  { id: 'tec-3', nome: 'Rafael Nunes', email: 'rafael.nunes@fieldcore.com', role: 'TECHNICIAN', status: 'INATIVO' },
+  { id: 'usr-client', nome: 'Roberto Almeida', email: 'roberto.almeida@fieldcore.com', role: 'CLIENT_VIEWER', status: 'ATIVO' },
 ];
+
+/** Apenas para o mock de login — em produção a API valida hash de senha (RN-007: nunca em log/claro). */
+export const MOCK_CREDENTIALS: Record<string, string> = {
+  'ana.ribeiro@fieldcore.com': 'admin123',
+  'marina.costa@fieldcore.com': 'super123',
+  'marcos.silva@fieldcore.com': 'tec123',
+  'juliana.prado@fieldcore.com': 'tec123',
+  'rafael.nunes@fieldcore.com': 'tec123',
+  'roberto.almeida@fieldcore.com': 'cli123',
+};
 
 export const MOCK_MODELS: InspectionModel[] = [
   {
@@ -135,7 +155,15 @@ export const MOCK_INSPECTIONS: Inspection[] = [
       l2: { itemId: 'l2', value: '', evidenceCount: 0 },
     },
     nonConformities: {
-      e1: { id: 'NC-1', itemId: 'e1', titulo: 'Corrosão na base do painel elétrico', descricao: 'Ponto de corrosão identificado na base, próximo à fixação.', criticidade: 'MEDIA', evidenceCount: 1 },
+      e1: {
+        id: 'NC-1',
+        itemId: 'e1',
+        titulo: 'Corrosão na base do painel elétrico',
+        descricao: 'Ponto de corrosão identificado na base, próximo à fixação.',
+        criticidade: 'MEDIA',
+        evidenceCount: 1,
+        status: 'ABERTA',
+      },
     },
   },
   {
@@ -150,5 +178,40 @@ export const MOCK_INSPECTIONS: Inspection[] = [
     status: 'ATRIBUIDA',
     answers: {},
     nonConformities: {},
+  },
+];
+
+/** Seed de exemplo para a fila de aprovação em /users (tela "Solicitar acesso"). */
+export const MOCK_ACCESS_REQUESTS: AccessRequest[] = [
+  {
+    id: 'req-1',
+    nome: 'Paulo Mendes',
+    email: 'paulo.mendes@fieldcore.com',
+    role: 'SUPERVISOR',
+    justificativa: 'Vou assumir a supervisão da região sul a partir da próxima semana.',
+    status: 'PENDENTE',
+    createdAt: '2026-08-30T13:10:00.000Z',
+  },
+];
+
+/** Seed inicial da trilha de auditoria (RN-086) — o restante é gerado pelas ações do painel. */
+export const MOCK_AUDIT_EVENTS: AuditEvent[] = [
+  {
+    id: 'aud-1',
+    timestamp: '2026-07-28T10:00:00.000Z',
+    userNome: 'Ana Ribeiro',
+    action: 'PUBLICOU',
+    entity: 'Modelo de inspeção',
+    entityId: 'mod-1',
+    details: 'Checklist de Manutenção Preventiva · v3',
+  },
+  {
+    id: 'aud-2',
+    timestamp: '2026-08-08T09:20:00.000Z',
+    userNome: 'Marina Costa',
+    action: 'REPROVOU',
+    entity: 'Inspeção',
+    entityId: 'INS-4459',
+    details: 'Motivo pendente de nova revisão',
   },
 ];
