@@ -11,6 +11,7 @@ export type InspectionStatus =
   | 'EM_ANDAMENTO'
   | 'ENVIADA'
   | 'EM_REVISAO'
+  | 'DEVOLVIDA'
   | 'APROVADA'
   | 'REPROVADA'
   | 'CANCELADA';
@@ -33,6 +34,8 @@ export interface ModelItem {
   required: boolean;
   /** RN-039: item crítico — exige evidência quando não conforme. */
   needsEvidenceOnNok: boolean;
+  /** Alternativas disponíveis quando type === 'SINGLE_CHOICE'. */
+  options?: string[];
 }
 
 export interface ModelSection {
@@ -85,6 +88,8 @@ export interface Location {
   nome: string;
   endereco?: string;
   ativo: boolean;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Equipment {
@@ -104,6 +109,13 @@ export interface Answer {
   value?: string;
   observacao?: string;
   evidenceCount: number;
+  /** Fotos de evidência (data URLs) anexadas pelo técnico. */
+  photos?: string[];
+}
+
+export function isAnswerFilled(answer: Answer | undefined): boolean {
+  if (!answer) return false;
+  return Boolean(answer.conformity || (answer.value && answer.value.trim().length > 0));
 }
 
 export type Criticidade = 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
@@ -118,6 +130,21 @@ export interface NonConformity {
   criticidade: Criticidade;
   evidenceCount: number;
   status: NonConformityStatus;
+  /** Fotos de evidência (data URLs) anexadas para a não conformidade. */
+  photos?: string[];
+}
+
+export interface Geolocalizacao {
+  lat: number;
+  lng: number;
+  capturedAt: string;
+}
+
+export interface SyncQueueItem {
+  id: string;
+  inspectionId: string;
+  descricao: string;
+  createdAt: string;
 }
 
 export interface ReviewInfo {
@@ -125,6 +152,13 @@ export interface ReviewInfo {
   comentario?: string;
   motivoReprovacao?: string;
   decidedAt?: string;
+}
+
+/** Registro de devolução da inspeção para correção do técnico (feedback do gestor). */
+export interface CorrectionFeedback {
+  supervisorNome: string;
+  comentario: string;
+  createdAt: string;
 }
 
 export interface Inspection {
@@ -142,6 +176,11 @@ export interface Inspection {
   answers: Record<string, Answer>;
   nonConformities: Record<string, NonConformity>;
   review?: ReviewInfo;
+  geolocalizacao?: Geolocalizacao;
+  /** Data/hora em que o QR Code do equipamento foi escaneado e confirmado. */
+  qrConfirmadoEm?: string;
+  /** Histórico de devoluções para correção (mais recente por último). */
+  correcoes?: CorrectionFeedback[];
 }
 
 /**

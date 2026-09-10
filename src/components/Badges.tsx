@@ -6,6 +6,7 @@ const STATUS_MAP: Record<InspectionStatus, { label: string; className: string }>
   EM_ANDAMENTO: { label: 'Em andamento', className: 'bg-amber-100 text-amber-700' },
   ENVIADA: { label: 'Aguardando revisão', className: 'bg-slate-200 text-slate-700' },
   EM_REVISAO: { label: 'Em revisão', className: 'bg-blue-100 text-blue-800' },
+  DEVOLVIDA: { label: 'Devolvida para correção', className: 'bg-orange-100 text-orange-700' },
   APROVADA: { label: 'Aprovada', className: 'bg-emerald-100 text-emerald-700' },
   REPROVADA: { label: 'Reprovada', className: 'bg-red-100 text-red-700' },
   CANCELADA: { label: 'Cancelada', className: 'bg-slate-100 text-slate-500' },

@@ -7,9 +7,9 @@ export const MOCK_CLIENTS: Client[] = [
 ];
 
 export const MOCK_LOCATIONS: Location[] = [
-  { id: 'loc-1', clienteId: 'cli-1', nome: 'Planta Industrial · Galpão 2', endereco: 'Rod. SP-75, km 12 — Sorocaba/SP', ativo: true },
-  { id: 'loc-2', clienteId: 'cli-2', nome: 'Barracão de Máquinas', endereco: 'Estrada Municipal 4, s/n — Itu/SP', ativo: true },
-  { id: 'loc-3', clienteId: 'cli-3', nome: 'Linha de Produção 3', endereco: 'Av. Industrial, 900 — Rio Verde/GO', ativo: true },
+  { id: 'loc-1', clienteId: 'cli-1', nome: 'Planta Industrial · Galpão 2', endereco: 'Av. Independência, 1200 - Sorocaba/SP', ativo: true, lat: -23.4917, lng: -47.4525 },
+  { id: 'loc-2', clienteId: 'cli-2', nome: 'Barracão de Máquinas', endereco: 'Estrada da Bela Vista, km 8 - Itu/SP', ativo: true, lat: -23.2645, lng: -47.2996 },
+  { id: 'loc-3', clienteId: 'cli-3', nome: 'Linha de Produção 3', endereco: 'Rua das Indústrias, 450 - Rio Verde/GO', ativo: true, lat: -17.7943, lng: -50.9264 },
 ];
 
 export const MOCK_EQUIPMENT: Equipment[] = [
@@ -68,6 +68,14 @@ export const MOCK_MODELS: InspectionModel[] = [
         items: [
           { id: 's1', title: 'Extintor de incêndio dentro da validade', type: 'CONFORMITY', required: true, needsEvidenceOnNok: false },
           { id: 's2', title: 'Sinalização de segurança visível e legível', type: 'CONFORMITY', required: false, needsEvidenceOnNok: false },
+          {
+            id: 's3',
+            title: 'Condição geral de conservação do local',
+            type: 'SINGLE_CHOICE',
+            required: true,
+            needsEvidenceOnNok: false,
+            options: ['Boa', 'Regular', 'Ruim'],
+          },
         ],
       },
       {
@@ -178,6 +186,70 @@ export const MOCK_INSPECTIONS: Inspection[] = [
     status: 'ATRIBUIDA',
     answers: {},
     nonConformities: {},
+  },
+  {
+    id: 'INS-4490',
+    clienteId: 'cli-3',
+    localId: 'loc-3',
+    equipamentoId: 'eq-3',
+    modeloId: 'mod-1',
+    modeloVersao: 3,
+    tecnicoId: 'tec-1',
+    prioridade: 'MEDIA',
+    dataPrevista: '2026-08-17T13:00:00.000Z',
+    orientacoes: 'Revisão de rotina do painel elétrico após manutenção da semana passada.',
+    status: 'EM_ANDAMENTO',
+    answers: {
+      e1: { itemId: 'e1', conformity: 'CONFORME', evidenceCount: 0 },
+      e2: { itemId: 'e2', conformity: 'NAO_CONFORME', observacao: 'Pintura descascando perto da base.', evidenceCount: 0 },
+      s1: { itemId: 's1', conformity: 'CONFORME', evidenceCount: 0 },
+      l1: { itemId: 'l1', value: '63', evidenceCount: 0 },
+    },
+    nonConformities: {
+      e2: { id: 'NC-2', itemId: 'e2', titulo: 'Pintura desgastada', descricao: 'Descascamento na base da estrutura, sem exposição de metal.', criticidade: 'BAIXA', evidenceCount: 0, status: 'ABERTA' },
+    },
+  },
+  {
+    id: 'INS-4491',
+    clienteId: 'cli-1',
+    localId: 'loc-1',
+    equipamentoId: 'eq-1',
+    modeloId: 'mod-1',
+    modeloVersao: 3,
+    tecnicoId: 'tec-1',
+    prioridade: 'ALTA',
+    dataPrevista: '2026-08-18T09:30:00.000Z',
+    orientacoes: 'Primeira inspeção deste compressor após a troca de peças.',
+    status: 'ATRIBUIDA',
+    answers: {},
+    nonConformities: {},
+  },
+  {
+    id: 'INS-4477',
+    clienteId: 'cli-2',
+    localId: 'loc-2',
+    equipamentoId: 'eq-2',
+    modeloId: 'mod-1',
+    modeloVersao: 3,
+    tecnicoId: 'tec-1',
+    prioridade: 'MEDIA',
+    dataPrevista: '2026-08-14T11:00:00.000Z',
+    status: 'DEVOLVIDA',
+    answers: {
+      e1: { itemId: 'e1', conformity: 'CONFORME', evidenceCount: 0 },
+      e2: { itemId: 'e2', conformity: 'CONFORME', evidenceCount: 0 },
+      s1: { itemId: 's1', conformity: 'CONFORME', evidenceCount: 0 },
+      s3: { itemId: 's3', value: 'Boa', evidenceCount: 0 },
+      l1: { itemId: 'l1', value: '54', evidenceCount: 0 },
+    },
+    nonConformities: {},
+    correcoes: [
+      {
+        supervisorNome: 'Marina Costa',
+        comentario: 'O item "Extintor de incêndio dentro da validade" está marcado como conforme, mas a foto anexada mostra a etiqueta vencida. Verifique e corrija antes de reenviar.',
+        createdAt: '2026-08-15T09:20:00.000Z',
+      },
+    ],
   },
 ];
 

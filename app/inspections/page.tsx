@@ -11,6 +11,7 @@ const FILTERS: { key: 'TODAS' | InspectionStatus; label: string }[] = [
   { key: 'ATRIBUIDA', label: 'Atribuídas' },
   { key: 'EM_ANDAMENTO', label: 'Em andamento' },
   { key: 'ENVIADA', label: 'Aguardando revisão' },
+  { key: 'DEVOLVIDA', label: 'Devolvidas' },
   { key: 'APROVADA', label: 'Aprovadas' },
   { key: 'REPROVADA', label: 'Reprovadas' },
 ];
@@ -30,6 +31,8 @@ export default function InspectionsListPage() {
 
   const clientName = (id: string) => clients.find((c) => c.id === id)?.nome ?? '—';
   const techName = (id: string) => users.find((u) => u.id === id)?.nome ?? '—';
+  const detailHref = (i: (typeof inspections)[number]) =>
+    i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO' || i.status === 'DEVOLVIDA' ? `/inspections/${i.id}/responder` : `/inspections/${i.id}`;
 
   const filtered = useMemo(() => {
     return inspections.filter((i) => {
@@ -94,7 +97,7 @@ export default function InspectionsListPage() {
               <tr key={i.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50">
                 <td className="px-5 py-3 font-mono text-xs text-slate-400 truncate">{i.id}</td>
                 <td className="px-5 py-3 font-semibold text-navy-900 truncate">
-                  <Link href={`/inspections/${i.id}`}>{clientName(i.clienteId)}</Link>
+                  <Link href={detailHref(i)}>{clientName(i.clienteId)}</Link>
                 </td>
                 <td className="px-5 py-3 text-slate-600 truncate">{techName(i.tecnicoId)}</td>
                 <td className="px-5 py-3"><PriorityTag priority={i.prioridade} /></td>
@@ -111,7 +114,7 @@ export default function InspectionsListPage() {
         {/* Mobile: lista de cards com as mesmas informações, empilhadas e sem cortar conteúdo */}
         <div className="xl:hidden divide-y divide-slate-100">
           {filtered.map((i) => (
-            <Link key={i.id} href={`/inspections/${i.id}`} className="block p-4 hover:bg-slate-50">
+            <Link key={i.id} href={detailHref(i)} className="block p-4 hover:bg-slate-50">
               <div className="flex items-start justify-between gap-3 mb-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-navy-900 truncate">{clientName(i.clienteId)}</div>
@@ -126,7 +129,13 @@ export default function InspectionsListPage() {
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-mono text-slate-500">{new Date(i.dataPrevista).toLocaleDateString('pt-BR')}</span>
                 <span className="text-xs font-bold text-navy-700 whitespace-nowrap">
-                  {i.status === 'ENVIADA' || i.status === 'EM_REVISAO' ? 'Revisar →' : 'Ver →'}
+                  {i.status === 'DEVOLVIDA'
+                    ? 'Corrigir →'
+                    : i.status === 'ATRIBUIDA' || i.status === 'EM_ANDAMENTO'
+                    ? 'Responder →'
+                    : i.status === 'ENVIADA' || i.status === 'EM_REVISAO'
+                    ? 'Revisar →'
+                    : 'Ver →'}
                 </span>
               </div>
             </Link>

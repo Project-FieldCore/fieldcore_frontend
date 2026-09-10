@@ -4,9 +4,13 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type {
   AccessRequest,
+  Answer,
   AuditEvent,
   Client,
+  CorrectionFeedback,
+  Criticidade,
   Equipment,
+  Geolocalizacao,
   Inspection,
   InspectionModel,
   Location,
@@ -14,10 +18,12 @@ import type {
   ModelSection,
   NonConformityStatus,
   Priority,
+  SyncQueueItem,
   User,
   UserRole,
   UserStatus,
 } from '@/types';
+import { isAnswerFilled } from '@/types';
 import {
   MOCK_ACCESS_REQUESTS,
   MOCK_CLIENTS,
@@ -49,6 +55,9 @@ interface AppState {
   inspections: Inspection[];
   auditEvents: AuditEvent[];
   accessRequests: AccessRequest[];
+  syncQueue: SyncQueueItem[];
+  lastSyncAt: string | null;
+  syncing: boolean;
 
   // --- solicitação de acesso (tela "Solicitar acesso" + aprovação em /users) ---
   requestAccess: (
@@ -105,9 +114,24 @@ interface AppState {
   startReview: (inspectionId: string) => void;
   approveInspection: (inspectionId: string, supervisorNome: string, comentario?: string) => void;
   rejectInspection: (inspectionId: string, supervisorNome: string, motivo: string) => Result;
+  returnForCorrection: (inspectionId: string, supervisorNome: string, comentario: string) => Result;
 
   // --- não conformidades ---
   resolveNonConformity: (inspectionId: string, itemId: string, status: NonConformityStatus) => void;
+
+  // --- responder checklist (UC-11, UC-12) ---
+  saveAnswer: (inspectionId: string, itemId: string, patch: Partial<Answer>) => void;
+  saveNonConformity: (
+    inspectionId: string,
+    itemId: string,
+    patch: Partial<{ titulo: string; descricao: string; criticidade: Criticidade; evidenceCount: number; photos: string[] }>
+  ) => void;
+  submitInspection: (inspectionId: string) => Result;
+  saveGeolocation: (inspectionId: string, geo: { lat: number; lng: number }) => void;
+  confirmEquipmentQr: (inspectionId: string, qrCode: string) => Result;
+
+  // --- sincronização offline ---
+  syncNow: () => Promise<void>;
 }
 
 function newId(prefix: string) {
@@ -178,6 +202,9 @@ export const useAppStore = create<AppState>()(
     inspections: MOCK_INSPECTIONS,
     auditEvents: MOCK_AUDIT_EVENTS,
     accessRequests: MOCK_ACCESS_REQUESTS,
+    syncQueue: [],
+    lastSyncAt: null,
+    syncing: false,
 
     // RN-001: só usuários ativos autenticam. Resposta genérica para
     // credenciais inválidas — não revela qual campo está incorreto (UC-01).
@@ -565,6 +592,118 @@ export const useAppStore = create<AppState>()(
         ),
       }));
       pushAudit(status === 'RESOLVIDA' ? 'RESOLVEU' : 'REABRIU', 'Não conformidade', `${inspectionId}/${itemId}`);
+    },
+
+    // Devolve a inspeção para o técnico corrigir, com feedback obrigatório do gestor.
+    returnForCorrection: (inspectionId, supervisorNome, comentario) => {
+      if (!comentario.trim()) return { ok: false, error: 'Descreva o que precisa ser corrigido antes de devolver ao técnico.' };
+      const feedback: CorrectionFeedback = { supervisorNome, comentario, createdAt: new Date().toISOString() };
+      set((s) => ({
+        inspections: s.inspections.map((i) =>
+          i.id === inspectionId
+            ? { ...i, status: 'DEVOLVIDA', correcoes: [...(i.correcoes ?? []), feedback] }
+            : i
+        ),
+      }));
+      pushAudit('DEVOLVEU', 'Inspeção', inspectionId, comentario);
+      return { ok: true };
+    },
+
+    // RN-039: itens críticos não conformes exigem evidência anexada.
+    saveAnswer: (inspectionId, itemId, patch) => {
+      set((s) => ({
+        inspections: s.inspections.map((i) => {
+          if (i.id !== inspectionId) return i;
+          const prev: Answer = i.answers[itemId] ?? { itemId, evidenceCount: 0 };
+          const answer: Answer = { ...prev, ...patch };
+          const status = i.status === 'ATRIBUIDA' || i.status === 'DEVOLVIDA' ? 'EM_ANDAMENTO' : i.status;
+          return { ...i, status, answers: { ...i.answers, [itemId]: answer } };
+        }),
+        syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Resposta do checklist', createdAt: new Date().toISOString() }],
+      }));
+    },
+
+    saveNonConformity: (inspectionId, itemId, patch) => {
+      set((s) => ({
+        inspections: s.inspections.map((i) => {
+          if (i.id !== inspectionId) return i;
+          const prev = i.nonConformities[itemId];
+          const nc = {
+            id: prev?.id ?? newId('nc'),
+            itemId,
+            titulo: prev?.titulo ?? '',
+            descricao: prev?.descricao ?? '',
+            criticidade: prev?.criticidade ?? ('MEDIA' as Criticidade),
+            evidenceCount: prev?.evidenceCount ?? 0,
+            status: prev?.status ?? ('ABERTA' as NonConformityStatus),
+            ...patch,
+          };
+          return { ...i, nonConformities: { ...i.nonConformities, [itemId]: nc } };
+        }),
+        syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Não conformidade registrada', createdAt: new Date().toISOString() }],
+      }));
+    },
+
+    // RN-039/040: todo item obrigatório precisa de resposta; não conformidade crítica exige evidência.
+    submitInspection: (inspectionId) => {
+      const inspection = get().inspections.find((i) => i.id === inspectionId);
+      if (!inspection) return { ok: false, error: 'Inspeção não encontrada.' };
+      const model = get().models.find((m) => m.id === inspection.modeloId);
+      if (!model) return { ok: false, error: 'Modelo da inspeção não encontrado.' };
+
+      for (const section of model.sections) {
+        for (const item of section.items) {
+          const answer = inspection.answers[item.id];
+          if (item.required && !isAnswerFilled(answer)) {
+            return { ok: false, error: `Responda o item obrigatório "${item.title}" antes de enviar.` };
+          }
+          if (item.needsEvidenceOnNok && answer?.conformity === 'NAO_CONFORME') {
+            const nc = inspection.nonConformities[item.id];
+            if (!nc || nc.evidenceCount === 0) {
+              return { ok: false, error: `O item "${item.title}" é crítico e exige evidência para a não conformidade registrada (RN-039).` };
+            }
+          }
+        }
+      }
+
+      set((s) => ({
+        inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, status: 'ENVIADA' } : i)),
+      }));
+      pushAudit('ENVIOU', 'Inspeção', inspectionId);
+      return { ok: true };
+    },
+
+    saveGeolocation: (inspectionId, geo) => {
+      const geolocalizacao: Geolocalizacao = { ...geo, capturedAt: new Date().toISOString() };
+      set((s) => ({
+        inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, geolocalizacao } : i)),
+        syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Localização capturada', createdAt: new Date().toISOString() }],
+      }));
+    },
+
+    // RN-041 (implícito): confirmar o equipamento correto via QR Code antes de responder.
+    confirmEquipmentQr: (inspectionId, qrCode) => {
+      const inspection = get().inspections.find((i) => i.id === inspectionId);
+      if (!inspection) return { ok: false, error: 'Inspeção não encontrada.' };
+      const equipment = get().equipment.find((e) => e.id === inspection.equipamentoId);
+      if (!equipment) return { ok: false, error: 'Esta inspeção não possui um equipamento vinculado.' };
+      if (equipment.qrCode !== qrCode) {
+        return { ok: false, error: `QR Code não corresponde a "${equipment.nome}". Verifique se está no equipamento correto.` };
+      }
+      const qrConfirmadoEm = new Date().toISOString();
+      set((s) => ({
+        inspections: s.inspections.map((i) => (i.id === inspectionId ? { ...i, qrConfirmadoEm } : i)),
+        syncQueue: [...s.syncQueue, { id: newId('sync'), inspectionId, descricao: 'Equipamento confirmado via QR Code', createdAt: qrConfirmadoEm }],
+      }));
+      return { ok: true };
+    },
+
+    // Sincronização simulada: em campo, a fila fica pendente até haver conexão.
+    syncNow: async () => {
+      if (get().syncing || get().syncQueue.length === 0) return;
+      set({ syncing: true });
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      set({ syncing: false, syncQueue: [], lastSyncAt: new Date().toISOString() });
     },
       };
     },

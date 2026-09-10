@@ -63,6 +63,13 @@ const IconHistory = () => (
   </svg>
 );
 
+const IconCheckSquare = () => (
+  <svg className="w-[18px] h-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12l2.5 2.5L16 9" />
+  </svg>
+);
+
 const IconMenu = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M4 12h16M4 17h16" />
@@ -94,6 +101,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/schedule', label: 'Agendar inspeção', Icon: IconCalendar, roles: ['ADMIN', 'SUPERVISOR'] },
   { href: '/inspections', label: 'Inspeções', Icon: IconSearch, roles: ['ADMIN', 'SUPERVISOR'] },
   { href: '/non-conformities', label: 'Não conformidades', Icon: IconAlert, roles: ['ADMIN', 'SUPERVISOR'] },
+  { href: '/inspections/responder', label: 'Responder checklist', Icon: IconCheckSquare, roles: ['TECHNICIAN'] },
 ];
 
 const ADMIN_NAV_ITEMS: NavItem[] = [
@@ -122,10 +130,12 @@ function Brand() {
 function NavLinks({ pathname, role, onNavigate }: { pathname: string; role: UserRole; onNavigate?: () => void }) {
   const items = [...NAV_ITEMS, ...ADMIN_NAV_ITEMS].filter((item) => item.roles.includes(role));
   const showDivider = role === 'ADMIN';
+  const matches = (href: string) => href === pathname || (href !== '/' && pathname.startsWith(`${href}/`));
+  const bestMatch = items.filter((item) => matches(item.href)).sort((a, b) => b.href.length - a.href.length)[0];
   return (
     <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-      {items.map((item, idx) => {
-        const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+      {items.map((item) => {
+        const active = item.href === bestMatch?.href;
         const isFirstAdminItem = showDivider && item === ADMIN_NAV_ITEMS[0];
         return (
           <div key={item.href}>
