@@ -40,18 +40,18 @@ export default function ClientDetailPage() {
   const equipmentCount = (localId: string) => equipment.filter((e) => e.localId === localId).length;
 
   return (
-    <div className="max-w-4xl">
+    <div>
       <button onClick={() => router.push('/clients')} className="text-sm font-semibold text-slate-500 hover:text-navy-700 mb-4">
         ← Voltar aos clientes
       </button>
 
       <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-5">
-        <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+        <div className="flex flex-col items-start sm:flex-row justify-between gap-2 sm:gap-3 mb-4">
           <input
             value={nome}
             onChange={(e) => setNome(e.target.value)}
             onBlur={handleRename}
-            className="text-xl font-extrabold text-navy-900 border-b border-transparent focus:border-navy-700 outline-none flex-1 min-w-[200px]"
+            className="text-lg sm:text-xl font-extrabold text-navy-900 border-b border-transparent focus:border-navy-700 outline-none w-full sm:flex-1 sm:min-w-[200px]"
           />
           <ActiveBadge ativo={client.ativo} />
         </div>
@@ -79,7 +79,7 @@ export default function ClientDetailPage() {
           Nenhum local cadastrado para este cliente ainda.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {locations.map((l) => (
             <div key={l.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col">
               <div className="flex items-start justify-between gap-2 mb-2">
