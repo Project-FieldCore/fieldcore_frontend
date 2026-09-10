@@ -1,4 +1,4 @@
-import type { InspectionStatus, ModelStatus, Priority } from '@/types';
+import type { Criticidade, InspectionStatus, ModelStatus, NonConformityStatus, Priority, UserStatus } from '@/types';
 
 const STATUS_MAP: Record<InspectionStatus, { label: string; className: string }> = {
   RASCUNHO: { label: 'Rascunho', className: 'bg-slate-100 text-slate-600' },
@@ -13,7 +13,7 @@ const STATUS_MAP: Record<InspectionStatus, { label: string; className: string }>
 
 export function InspectionStatusBadge({ status }: { status: InspectionStatus }) {
   const s = STATUS_MAP[status];
-  return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide ${s.className}`}>{s.label}</span>;
+  return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap ${s.className}`}>{s.label}</span>;
 }
 
 const MODEL_STATUS_MAP: Record<ModelStatus, { label: string; className: string }> = {
@@ -23,7 +23,7 @@ const MODEL_STATUS_MAP: Record<ModelStatus, { label: string; className: string }
 
 export function ModelStatusBadge({ status }: { status: ModelStatus }) {
   const s = MODEL_STATUS_MAP[status];
-  return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide ${s.className}`}>{s.label}</span>;
+  return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap ${s.className}`}>{s.label}</span>;
 }
 
 const PRIORITY_MAP: Record<Priority, { label: string; dot: string }> = {
@@ -35,9 +35,56 @@ const PRIORITY_MAP: Record<Priority, { label: string; dot: string }> = {
 export function PriorityTag({ priority }: { priority: Priority }) {
   const p = PRIORITY_MAP[priority];
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
-      <span className={`w-2 h-2 rounded-full ${p.dot}`} />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 whitespace-nowrap">
+      <span className={`w-2 h-2 rounded-full shrink-0 ${p.dot}`} />
       {p.label}
+    </span>
+  );
+}
+
+const USER_STATUS_MAP: Record<UserStatus, { label: string; className: string }> = {
+  ATIVO: { label: 'Ativo', className: 'bg-emerald-100 text-emerald-700' },
+  INATIVO: { label: 'Inativo', className: 'bg-slate-100 text-slate-500' },
+  BLOQUEADO: { label: 'Bloqueado', className: 'bg-red-100 text-red-700' },
+};
+
+export function UserStatusBadge({ status }: { status: UserStatus }) {
+  const s = USER_STATUS_MAP[status];
+  return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap ${s.className}`}>{s.label}</span>;
+}
+
+/** Estado de ativação de cadastros (clientes, locais, equipamentos) — RN-013: inativação, nunca exclusão. */
+export function ActiveBadge({ ativo }: { ativo: boolean }) {
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap ${ativo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+      {ativo ? 'Ativo' : 'Inativo'}
+    </span>
+  );
+}
+
+const NC_STATUS_MAP: Record<NonConformityStatus, { label: string; className: string }> = {
+  ABERTA: { label: 'Aberta', className: 'bg-red-100 text-red-700' },
+  RESOLVIDA: { label: 'Resolvida', className: 'bg-emerald-100 text-emerald-700' },
+};
+
+export function NonConformityStatusBadge({ status }: { status: NonConformityStatus }) {
+  const s = NC_STATUS_MAP[status];
+  return <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide whitespace-nowrap ${s.className}`}>{s.label}</span>;
+}
+
+const CRITICIDADE_MAP: Record<Criticidade, { label: string; dot: string }> = {
+  CRITICA: { label: 'Crítica', dot: 'bg-red-600' },
+  ALTA: { label: 'Alta', dot: 'bg-red-400' },
+  MEDIA: { label: 'Média', dot: 'bg-amber-500' },
+  BAIXA: { label: 'Baixa', dot: 'bg-slate-400' },
+};
+
+export function CriticidadeTag({ criticidade }: { criticidade: Criticidade }) {
+  const c = CRITICIDADE_MAP[criticidade];
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 whitespace-nowrap">
+      <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
+      {c.label}
     </span>
   );
 }

@@ -1,0 +1,82 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAppStore } from '@/store/app-store';
+import { Sidebar } from '@/components/Sidebar';
+import type { UserRole } from '@/types';
+
+/**
+ * Áreas restritas ao perfil ADMIN (05 - Perfis de Usuário: "menor privilégio").
+ * Isto é apenas conveniência de navegação — a API é sempre a decisão final
+ * de autorização (RN-003); o painel só evita expor ações que o back-end
+ * rejeitaria de qualquer forma.
+ */
+const ADMIN_ONLY_PREFIXES = ['/users', '/clients', '/equipment', '/audit'];
+
+/** Rotas de autenticação — acessíveis sem sessão, e que dispensam a Sidebar (UC-01, "Solicitar acesso", "Esqueci minha senha"). */
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password'];
+
+function isAllowed(pathname: string, role: UserRole) {
+  if (role === 'ADMIN') return true;
+  return !ADMIN_ONLY_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+export function Shell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const currentUser = useAppStore((s) => s.currentUser);
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
+
+  // A sessão é reidratada da sessionStorage de forma assíncrona (só existe no
+  // navegador) — sem esperar isso, um refresh em rota protegida chutaria o
+  // usuário para /login antes da sessão voltar.
+  const [hydrated, setHydrated] = useState(() => useAppStore.persist.hasHydrated());
+  useEffect(() => {
+    setHydrated(useAppStore.persist.hasHydrated());
+    return useAppStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    // Lê o estado ao vivo (em vez do `currentUser` capturado no render) —
+    // a reidratação da sessão dispara `hydrated` e a atualização do usuário
+    // em dois microtasks separados, então o valor de `currentUser` nesta
+    // render pode estar um tick atrasado em relação a `hydrated`.
+    const liveUser = useAppStore.getState().currentUser;
+    if (isPublicRoute) {
+      if (liveUser) router.replace('/');
+      return;
+    }
+    if (!liveUser) {
+      router.replace('/login');
+      return;
+    }
+    if (!isAllowed(pathname, liveUser.role)) {
+      router.replace('/');
+    }
+  }, [hydrated, pathname, isPublicRoute, router, currentUser]);
+
+  if (!hydrated) {
+    return <div className="min-h-screen" />;
+  }
+
+  if (isPublicRoute) {
+    // Sessão já ativa acessando uma rota pública diretamente — tela em branco até o redirect acima disparar.
+    if (currentUser) return <div className="min-h-screen" />;
+    // A própria página controla seu layout (split-screen full-bleed, sem Sidebar).
+    return <div className="min-h-screen">{children}</div>;
+  }
+
+  // Sessão ainda não resolvida ou rota não permitida para o perfil — evita piscar conteúdo protegido.
+  if (!currentUser || !isAllowed(pathname, currentUser.role)) {
+    return <div className="min-h-screen" />;
+  }
+
+  return (
+    <>
+      <Sidebar />
+      <main className="min-h-screen min-w-0 pt-20 pb-8 px-4 sm:px-6 lg:pt-8 lg:pb-8 lg:pl-72 lg:pr-8">{children}</main>
+    </>
+  );
+}

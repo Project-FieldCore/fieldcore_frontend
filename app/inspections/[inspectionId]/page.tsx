@@ -22,7 +22,8 @@ export default function InspectionReviewPage() {
   const clients = useAppStore((s) => s.clients);
   const locations = useAppStore((s) => s.locations);
   const equipment = useAppStore((s) => s.equipment);
-  const technicians = useAppStore((s) => s.technicians);
+  const users = useAppStore((s) => s.users);
+  const currentUser = useAppStore((s) => s.currentUser);
   const startReview = useAppStore((s) => s.startReview);
   const approveInspection = useAppStore((s) => s.approveInspection);
   const rejectInspection = useAppStore((s) => s.rejectInspection);
@@ -38,7 +39,7 @@ export default function InspectionReviewPage() {
   const client = clients.find((c) => c.id === inspection.clienteId);
   const location = locations.find((l) => l.id === inspection.localId);
   const equip = equipment.find((e) => e.id === inspection.equipamentoId);
-  const tech = technicians.find((t) => t.id === inspection.tecnicoId);
+  const tech = users.find((u) => u.id === inspection.tecnicoId);
 
   const canReview = inspection.status === 'ENVIADA' || inspection.status === 'EM_REVISAO';
 
@@ -46,11 +47,11 @@ export default function InspectionReviewPage() {
     startReview(inspection!.id);
   }
   function handleApprove() {
-    approveInspection(inspection!.id, 'Marina Costa', comentario || undefined);
+    approveInspection(inspection!.id, currentUser?.nome ?? 'Supervisor(a)', comentario || undefined);
     router.push('/inspections');
   }
   function handleReject() {
-    const result = rejectInspection(inspection!.id, 'Marina Costa', motivo);
+    const result = rejectInspection(inspection!.id, currentUser?.nome ?? 'Supervisor(a)', motivo);
     if (!result.ok) { setRejectError(result.error); return; }
     router.push('/inspections');
   }

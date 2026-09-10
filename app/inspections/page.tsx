@@ -22,13 +22,14 @@ const FILTERS: { key: 'TODAS' | InspectionStatus; label: string }[] = [
 export default function InspectionsListPage() {
   const inspections = useAppStore((s) => s.inspections);
   const clients = useAppStore((s) => s.clients);
-  const technicians = useAppStore((s) => s.technicians);
+  const users = useAppStore((s) => s.users);
+  const technicians = users.filter((u) => u.role === 'TECHNICIAN');
 
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('TODAS');
   const [techFilter, setTechFilter] = useState('TODOS');
 
   const clientName = (id: string) => clients.find((c) => c.id === id)?.nome ?? '—';
-  const techName = (id: string) => technicians.find((t) => t.id === id)?.nome ?? '—';
+  const techName = (id: string) => users.find((u) => u.id === id)?.nome ?? '—';
 
   const filtered = useMemo(() => {
     return inspections.filter((i) => {
@@ -69,13 +70,13 @@ export default function InspectionsListPage() {
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         {/* Tablet/desktop: tabela ocupa 100% do card, sem largura mínima — nunca gera rolagem lateral */}
-        <table className="hidden md:table w-full text-sm table-fixed">
+        <table className="hidden xl:table w-full text-sm table-fixed">
           <colgroup>
-            <col className="w-[12%]" />
+            <col className="w-[10%]" />
+            <col className="w-[21%]" />
+            <col className="w-[18%]" />
+            <col className="w-[13%]" />
             <col className="w-[24%]" />
-            <col className="w-[20%]" />
-            <col className="w-[14%]" />
-            <col className="w-[16%]" />
             <col className="w-[14%]" />
           </colgroup>
           <thead>
@@ -108,7 +109,7 @@ export default function InspectionsListPage() {
         </table>
 
         {/* Mobile: lista de cards com as mesmas informações, empilhadas e sem cortar conteúdo */}
-        <div className="md:hidden divide-y divide-slate-100">
+        <div className="xl:hidden divide-y divide-slate-100">
           {filtered.map((i) => (
             <Link key={i.id} href={`/inspections/${i.id}`} className="block p-4 hover:bg-slate-50">
               <div className="flex items-start justify-between gap-3 mb-2">

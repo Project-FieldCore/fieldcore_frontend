@@ -8,3 +8,22 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
+
+/* Usados na tela de login (app/login/page.tsx) — orbes de fundo e entrada suave do card. */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3%, -4%) scale(1.06); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-drift {
+  animation: drift 16s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

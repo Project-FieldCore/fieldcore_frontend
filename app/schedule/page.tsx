@@ -19,7 +19,7 @@ export default function SchedulePage() {
   const clients = useAppStore((s) => s.clients);
   const locations = useAppStore((s) => s.locations);
   const equipment = useAppStore((s) => s.equipment);
-  const technicians = useAppStore((s) => s.technicians);
+  const technicians = useAppStore((s) => s.users.filter((u) => u.role === 'TECHNICIAN'));
   const scheduleInspection = useAppStore((s) => s.scheduleInspection);
 
   const [modeloId, setModeloId] = useState(models[0]?.id ?? '');
@@ -138,7 +138,7 @@ export default function SchedulePage() {
                 <select value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)} className="input">
                   <option value="">Selecione...</option>
                   {technicians.map((t) => (
-                    <option key={t.id} value={t.id} disabled={!t.ativo}>{t.nome}{!t.ativo ? ' (inativo)' : ''}</option>
+                    <option key={t.id} value={t.id} disabled={t.status !== 'ATIVO'}>{t.nome}{t.status !== 'ATIVO' ? ' (inativo)' : ''}</option>
                   ))}
                 </select>
               </Field>

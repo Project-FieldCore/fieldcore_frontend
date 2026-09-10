@@ -131,7 +131,7 @@ export default function ModelBuilderPage() {
                   className="flex-1 border-b border-slate-200 focus:border-navy-700 outline-none font-bold text-navy-900 py-1 min-w-0"
                 />
                 <span className="text-xs font-semibold text-slate-400 shrink-0 whitespace-nowrap">
-                  {section.items.length} item{section.items.length === 1 ? '' : 'ns'}
+                  {section.items.length} {section.items.length === 1 ? 'item' : 'itens'}
                 </span>
                 <button onClick={() => removeSection(model.id, section.id)} className="text-xs font-semibold text-red-600 shrink-0">
                   Remover seção
