@@ -24,21 +24,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // Sem chamada de rede real neste mock — o pequeno atraso só evita que o
-    // botão "pisque" e deixa o estado de carregamento perceptível.
-    window.setTimeout(() => {
-      const result = login(email, senha);
-      setLoading(false);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      setError(null);
-      router.replace('/');
-    }, 250);
+    const result = await login(email, senha);
+    setLoading(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setError(null);
+    router.replace('/');
   }
 
   return (

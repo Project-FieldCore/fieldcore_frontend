@@ -35,6 +35,9 @@ import {
   MOCK_MODELS,
   MOCK_USERS,
 } from '@/data/mock-data';
+import { login as apiLogin } from '@/lib/auth-api';
+import { ApiError, NetworkError } from '@/lib/http';
+import { onUnauthorized, setAuthToken } from '@/lib/auth-token';
 
 type Result = { ok: true } | { ok: false; error: string };
 type ResultWithId = { ok: true; id: string } | { ok: false; error: string };
@@ -42,7 +45,7 @@ type ResultWithId = { ok: true; id: string } | { ok: false; error: string };
 interface AppState {
   // --- sessão (UC-01) ---
   currentUser: User | null;
-  login: (email: string, senha: string) => Result;
+  login: (email: string, senha: string) => Promise<Result>;
   logout: () => void;
   /** RN-007: nunca revela se o e-mail existe — sempre retorna ok. Só troca a senha de fato quando encontra uma conta ativa. */
   resetPassword: (email: string, novaSenha: string) => Result;
@@ -208,19 +211,35 @@ export const useAppStore = create<AppState>()(
 
     // RN-001: só usuários ativos autenticam. Resposta genérica para
     // credenciais inválidas — não revela qual campo está incorreto (UC-01).
-    login: (email, senha) => {
+    // RN-003: quem decide autorização de fato é a API — os checks de
+    // status/perfil aqui só evitam abrir o painel para quem a API já
+    // autenticou mas não deveria estar nele (ex.: TECHNICIAN).
+    login: async (email, senha) => {
       const normalized = email.trim().toLowerCase();
-      const user = get().users.find((u) => u.email.toLowerCase() === normalized);
-      const senhaOk = MOCK_CREDENTIALS[normalized] === senha;
-      if (!user || !senhaOk) {
-        return { ok: false, error: 'E-mail ou senha inválidos.' };
+      if (!isValidEmail(normalized)) return { ok: false, error: 'Informe um e-mail válido.' };
+      if (!senha.trim()) return { ok: false, error: 'Informe sua senha.' };
+
+      let token: string;
+      let user: User;
+      try {
+        const response = await apiLogin(normalized, senha);
+        token = response.token;
+        user = response.user;
+      } catch (error) {
+        if (error instanceof ApiError) {
+          return { ok: false, error: error.status === 401 ? 'E-mail ou senha inválidos.' : error.message };
+        }
+        if (error instanceof NetworkError) return { ok: false, error: error.message };
+        return { ok: false, error: 'Não foi possível entrar. Tente novamente.' };
       }
+
       if (user.status !== 'ATIVO') {
         return { ok: false, error: 'Este usuário está inativo ou bloqueado. Procure um administrador.' };
       }
       if (user.role !== 'ADMIN' && user.role !== 'SUPERVISOR') {
         return { ok: false, error: 'Este perfil não tem acesso à interface administrativa web.' };
       }
+      setAuthToken(token);
       set({ currentUser: user });
       pushAudit('ACESSOU', 'Sessão', user.id, 'Login no painel administrativo');
       return { ok: true };
@@ -229,6 +248,7 @@ export const useAppStore = create<AppState>()(
     logout: () => {
       const user = get().currentUser;
       if (user) pushAudit('SAIU', 'Sessão', user.id, 'Logout do painel administrativo');
+      setAuthToken(null);
       set({ currentUser: null });
     },
 
@@ -714,3 +734,9 @@ export const useAppStore = create<AppState>()(
     }
   )
 );
+
+// Sessão expirada (401 numa requisição autenticada) — desloga e deixa o
+// Shell redirecionar ao login, como um refresh normal de página faria.
+onUnauthorized(() => {
+  useAppStore.getState().logout();
+});
