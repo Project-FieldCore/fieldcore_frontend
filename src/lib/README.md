@@ -44,8 +44,39 @@ Métodos disponíveis: `http.get`, `http.post`, `http.put`, `http.patch`, `http.
   deslogar o usuário. Um `401` sem token (ex.: login com credenciais erradas)
   não dispara isso — é só "credenciais inválidas".
 
+## Fluxo de login e sessão
+
+`useAppStore.login` (`src/store/app-store.ts`) é o único ponto que chama
+`auth-api.ts`. Ciclo completo:
+
+1. Validação local (e-mail bem formado, senha não vazia) — evita bater na API
+   com formulário incompleto.
+2. `POST /auth/login` via `http.post` → `{ token, user }`.
+3. `ApiError`/`NetworkError` viram mensagem amigável e `{ ok: false }` — nada é
+   persistido.
+4. Checks de `user.status`/`user.role` (RN-001/RN-003): quem decide de fato é
+   a API, isso aqui só evita abrir o painel admin para quem não deveria estar
+   nele. Se falhar, o token retornado é descartado (nunca chega a
+   `setAuthToken`).
+5. Sucesso: `setAuthToken(token)` + `set({ currentUser: user })`.
+6. `logout()` (manual ou via 401 em qualquer requisição autenticada, ver
+   seção acima) limpa os dois. O `Shell.tsx` observa `currentUser` e
+   redireciona para `/login` assim que ele vira `null`.
+
+**Bloqueio conhecido:** `auth-api.ts` assume o contrato `POST /auth/login`
+mas o `fieldcore_backend` ainda não implementa esse endpoint (repo
+praticamente vazio no momento em que isso foi escrito). O código está pronto
+para consumir a API real, porém **não foi validado ponta a ponta** — só com
+os testes abaixo, que mockam `auth-api.ts`. Validar de novo assim que o
+endpoint existir.
+
 ## Testes
 
-`src/lib/http.test.ts` cobre resposta ok, `204`, `ApiError`, `NetworkError`
-(fetch falhando/timeout) e o disparo (ou não) de `notifyUnauthorized` em 401.
+- `src/lib/http.test.ts` — resposta ok, `204`, `ApiError`, `NetworkError`
+  (fetch falhando/timeout) e o disparo (ou não) de `notifyUnauthorized` em 401.
+- `src/store/app-store.auth.test.ts` — `login`/`logout` do store (mockando
+  `auth-api.ts`): sucesso, credenciais inválidas, erro de servidor, erro de
+  rede, usuário inativo, perfil sem acesso, e o logout automático disparado
+  por uma sessão expirada.
+
 Rodar com `npm test`.
